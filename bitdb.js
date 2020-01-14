@@ -16,17 +16,16 @@ async function bitdb(query) {
 	let url = bitdbUrl + b64
 	let headers = { headers: { key: [ bitdbKey ] } }
 	let res = (await fetch(url, headers))
-	//console.log(await res.text())
+	res = await res.text()
 	try {
-		res = await res.json()
+		res = JSON.parse(res)
 		if (res.u && res.c && res.u.concat && res.c.concat && res.u.length > 0) {
 			return res.u.concat(res.c)
 		} else {
 			return (res.u && res.u.length !== 0) ? res.u : res.c
 		}
 	} catch(e) {
-		console.log(e)
-		return await res.text()
+		throw e
 	}
 }
 
