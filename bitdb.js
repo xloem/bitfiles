@@ -30,13 +30,15 @@ async function bitdb(query) {
 	}
 }
 
-let testaddr = ''
 
-function d(addr, limit, skip)
+function d(addr, limit, skip, key = undefined)
 {
 	return { 'v': 3, 'q': { 'find': {
 		'out.s1': D_,
 		'in.e.a': addr,
+		'out.s2': key
+	}, 'sort': {
+		'blk.i': -1
 	}, 'limit': limit, 'skip': skip }, 'r': {
 		'f': '[.[] | { transaction: .tx.h, block: .blk, sender: .in[0].e.a ,appID: .out[0].s1, alias: .out[0].s2, pointer: .out[0].s3, type: .out[0].s4 , seq: .out[0].s5 }]'
 	} }
@@ -88,6 +90,5 @@ module.exports = {
 	d: d,
 	bcat: bcat,
 	bcatpart: bcatpart,
-	parsebcat: parsebcat,
-	testaddr: testaddr
+	parsebcat: parsebcat
 }
