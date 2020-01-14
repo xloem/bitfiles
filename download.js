@@ -4,6 +4,23 @@ fs = require('fs')
 bitdb = require('./bitdb.js')
 Queue = require('./queue.js')
 
+async function bcatdownload(txid, fn = undefined)
+{
+	if (fn === undefined) {
+		let bcat = await bitdb.bitdb(bitdb.bcat(txid))
+		fn = bcat.filename
+	}
+	let fd = fs.openSync(fn, 'w')
+	let total = 0
+	await bcatstream(txid, {write: data => {
+		fs.writeSync(fd, data)
+		total += data.length
+		process.stdout.write(`${total} ...\r`)
+	}})
+	process.stdout.write('                       \r')
+	fs.closeSync(fd)
+}
+
 async function ddownload(addr, keypfx)
 {
 	let keys = {}
@@ -15,8 +32,9 @@ async function ddownload(addr, keypfx)
 		for (let r of res) {
 			if (r.alias.length < keypfx || r.alias.slice(0,keypfx.length) !== keypfx) { continue }
 			if (r.alias in keys) { continue }
-			keys[r.alias] = res
+			keys[r.alias] = true
 			console.log(r.alias)
+			await bcatdownload(r.pointer, r.alias)
 		}
 		if (res.length < limit) break
 		skip += res.length
@@ -107,5 +125,7 @@ async function bcatstatus(txid)
 module.exports = {
 	dlog: dlog,
 	bcatstatus: bcatstatus,
-	bcatstream: bcatstream
+	bcatstream: bcatstream,
+	ddownload: ddownload,
+	bcatdownload: bcatdownload
 }
