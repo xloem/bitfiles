@@ -2,15 +2,22 @@
 
 let argv = {_: process.argv.slice(2)}//require('minimist')(process.argv.slice(2))
 let download = require('./download')
+let bitdb = require('./bitdb')
 
 let action = argv._[0]
 let url = argv._[1]
 if (!url) { url = action; action = 'status' }
 url = url.split('://')
-let type = url[0].toUpperCase()
-let path = url[1].split('/')
-let id = path.shift()
-let dkey = path.join('/')
+let type, path, id, dkey
+if (url[1]) {
+	type = url[0].toUpperCase()
+	path = url[1].split('/')
+	id = path.shift()
+	dkey = path.join('/')
+} else {
+	path = url[0]
+	id = url[0]
+}
 
 if (action == 'status') {
 	if (type == 'TX') {
@@ -34,6 +41,11 @@ if (action == 'status') {
 	if (type == 'D') {
 		download.ddownload(id, dkey)
 	}
+} else if (action == 'bitdb') {
+	(async () => {
+		let r = await bitdb.bitdb(JSON.parse(argv._[1]))
+		console.log(JSON.stringify(r))
+	})()
 }
 
 
