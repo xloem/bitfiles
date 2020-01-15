@@ -55,7 +55,9 @@ async function bitdb(query) {
 		} else if (json.c && (json.c.length === undefined || json.c.length !== 0)) {
 			return json.c
 		} else {
-			throw new Error("no results for " + JSON.stringify(query))
+			let e = new Error("no results for " + JSON.stringify(query))
+			e.code = 'NoResults'
+			throw e
 		}
 	} catch(e) {
 		if (e.name === 'SyntaxError') {
