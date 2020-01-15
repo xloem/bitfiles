@@ -173,7 +173,8 @@ async function bcatstatus(txid)
 		}, chunk)
 	}
 	queue.on('reject', e => {
-		console.log(`Bad Chunk?: #${chunkindex[chunk]} ${chunk} ${e.toString()}`)
+		//console.log(`Bad Chunk?: #${chunkindex[chunk]} ${chunk} ${e.toString()}`)
+		console.log(`Bad Chunk?: ${e.toString()}`)
 		++ badchunks
 	})
 	queue.on('resolve', e => {
