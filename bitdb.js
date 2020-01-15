@@ -105,7 +105,7 @@ function b(txid)
 		'in.e.a': 1,
 		'out.$': 1
 	} }, 'r': {
-		'f': '.[] | { block: .blk, sender: .in[0].e.a, data: .out[0].lb2, mime: .out[0].s3, encoding: .out[0].s4, filename: .out[0].s5 }'
+		'f': '.[] | { block: .blk, sender: .in[0].e.a, data: (.out[0].b2 // .out[0].lb2), mime: .out[0].s3, encoding: .out[0].s4, filename: .out[0].s5 }'
 	} }
 }
 
@@ -147,9 +147,9 @@ function bcatpart(txid)
 		'out.s1': BCatPart_,
 		'tx.h': txid,
 	}, 'project': {
-		'out.$.lb2': 1
+		'out.$': 1,
 	} }, 'r': {
-		'f': '.[] | .out[0].lb2'
+		'f': '.[] | (.out[0].b2 // .out[0].lb2)'
 	} }
 }
 
