@@ -1,0 +1,108 @@
+#!/usr/bin/env node
+
+let argv = {_: process.argv.slice(2)}//require('minimist')(process.argv.slice(2))
+
+bitdb = require('./bitdb.js')
+download = require('./download.js')
+
+os = require('os')
+
+let mark=0
+let block=null
+let lasttag=null
+
+async function one(author, r)
+{
+	// for now we output everything, but would be reasonable to resume from
+	// a provided block or time.
+	if (r.alias[r.alias.length-1] === '/') {
+		console.log(`progress ignoring entry for empty path component ${r.alias}`)
+		return
+	}
+	if (r.block.h !== block && block !== null) {
+		console.log(`reset refs/tags/block-${block}`)
+		console.log(`from :${mark}`)
+		console.log(`progress block-${block} :${mark}`)
+		console.log(`checkpoint`)
+	}
+	block = r.block.h
+	console.log(`progress ${r.block.t} ${r.transaction} ${r.alias} ${r.type} ${r.pointer}`)
+	if (r.type === 'b') {
+		let stat, len, app
+		let fn = `${os.tmpdir()}/${r.pointer}` 
+		try {
+			app = bitdb.parseapp(await bitdb.bitdb(bitdb.app(r.pointer)))
+			if (app === 'B') {
+				stat = await bitdb.bitdb(bitdb.b(r.pointer))
+				//process.stderr.write(JSON.stringify(stat))
+				len = stat.data.length
+				let fd = fs.openSync(fn, 'w')
+				fs.writeSync(fd, stat.data)
+				fs.closeSync(fd)
+			} else if (app === 'BCAT') {
+				stat = await bitdb.bitdb(bitdb.bcat(r.pointer))
+				len = 0
+				let fd = fs.openSync(fn, 'w')
+				await download.bcatstream(r.pointer, {write: data => {
+					fs.writeSync(fd, data)
+					len += data.length
+				}})
+				fs.closeSync(fd)
+			}
+		} catch(e) {
+			if (e.code === 'NoResults') {
+				console.log('progress NOT FOUND')
+				return
+			}
+			throw e
+		}
+		++ mark
+		console.log('commit refs/heads/master')
+		console.log(`mark :${mark}`);
+		console.log(`original-oid ${r.transaction}`)
+		console.log(`author <${stat.sender}> ${stat.block.t} +0000`)
+		console.log(`committer <${author}> ${r.block.t} +0000`)
+		let commitmsg = `${r.alias} ${r.transaction}\ntype=${r.type} ${app}://${r.pointer}\ncommit block=${r.block.h} height=${r.block.i}\nfilename=${stat.filename} mime=${stat.mime} encoding=${stat.encoding}\nfile block=${stat.block.h} height=${r.block.i}`
+		console.log(`data ${commitmsg.length}`)
+		console.log(commitmsg)
+		if (mark>1) {
+			console.log(`from ${lasttag}`)
+		}
+		console.log(`M 644 inline ${r.alias}`)
+		console.log(`data ${len}`)
+		fd = fs.openSync(fn, 'r')
+		buf = Buffer.alloc(64000)
+		while(true) {
+			let count = fs.readSync(fd, buf, 0, buf.length)
+			process.stdout.write(buf.slice(0, count))
+			if (count < buf.length) break;
+		}
+		fs.closeSync(fd)
+		fs.unlinkSync(fn)
+		console.log('')
+		console.log(`reset refs/tags/tx-${r.transaction}`)
+		console.log(`from :${mark}`)
+		lasttag=`tx-${r.transaction}`
+	} else {
+		console.log('progress unhandled type ' + type)
+	}
+	// maybe checkpoint after a block
+	// maybe start at a given block hash
+}
+
+async function go(addr)
+{
+	let limit = 100
+	let skip = 0
+	while (true) {
+		let res = await bitdb.bitdb(bitdb.d(addr, limit, skip, undefined, false))
+		for (let r of res) {
+			await one(addr, r)
+		}
+		if (res.length < limit) break
+		skip += res.length
+	}
+	console.log('done')
+}
+
+go(argv._[0])
