@@ -11,6 +11,7 @@ class Queue extends EventEmitter
 		this.completedIndex = 0
 		this.nextIndex = 0
 		this.waiter = null
+		this.finaldata = undefined
 	}
 	wait() {
 		if (this.waiter) { return this.waiter }
@@ -22,6 +23,14 @@ class Queue extends EventEmitter
 		this.pending.push({'func': asyncfunc, 'index': this.nextIndex, 'data': data})
 		++ this.nextIndex
 		this._checkpending()
+	}
+	stop(resolveorreject, data) {
+		this.nextIndex -= this.pending.length
+		this.pending = []
+		this.finaldata = data
+		if (resolveorreject == 'reject') {
+			this.waiter.resolve = this.waiter.reject
+		}
 	}
 	_checkpending() {
 		if (this.active >= this.max) { return }
@@ -48,7 +57,7 @@ class Queue extends EventEmitter
 				if (this.completedIndex == this.nextIndex) {
 					this.completedIndex = 0
 					this.nextIndex = 0
-					this.waiter.resolve()
+					this.waiter.resolve(this.finaldata)
 				}
 			}
 		})

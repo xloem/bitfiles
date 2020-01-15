@@ -4,17 +4,27 @@ let argv = {_: process.argv.slice(2)}//require('minimist')(process.argv.slice(2)
 let download = require('./download')
 
 let action = argv._[0]
-let url = argv._[1].split('://')
+let url = argv._[1]
+if (!url) { url = action; action = 'status' }
+url = url.split('://')
 let type = url[0].toUpperCase()
 let path = url[1].split('/')
 let id = path.shift()
 let dkey = path.join('/')
 
 if (action == 'status') {
-	if (type == 'D') {
-		download.dlog(id)
+	if (type == 'TX') {
+		download.txstatus(id)
+	} else if (type == 'D') {
+		if (dkey) {
+			download.dstatus(id, dkey)
+		} else {
+			download.dlog(id)
+		}
 	} else if (type == 'BCAT') {
 		download.bcatstatus(id)
+	} else if (type == 'C') {
+		download.cstatus(id)
 	}
 } else if (action == 'stream') {
 	if (type == 'BCAT') {

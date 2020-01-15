@@ -1,0 +1,25 @@
+{
+  "name": "bitfiles",
+  "version": "1.0.0",
+  "description": "bsv file support",
+  "main": "bitfiles",
+  "dependencies": {
+    "events": "^3.1.0",
+    "node-fetch": "^2.6.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "xloem.github:xloem/bitfiles.git"
+  },
+  "keywords": [
+    "bsv",
+    "bitdb",
+    "bcat"
+  ],
+  "author": "",
+  "license": "ISC"
+}
