@@ -66,7 +66,7 @@ async function bitdb(query) {
 }
 
 
-function d(addr, limit, skip, key = undefined)
+function d(addr, limit, skip, key = undefined, reverse = true)
 {
 	return { 'v': 3, 'q': { 'find': {
 		'out.s1': D_,
@@ -77,7 +77,8 @@ function d(addr, limit, skip, key = undefined)
 		'blk': 1,
 		'out.$': 1,
 	}, 'sort': {
-		'blk.i': -1
+		'blk.i': reverse ? -1 : 1,
+		'out.s5': reverse ? -1 : 1
 	}, 'limit': limit, 'skip': skip }, 'r': {
 		'f': '[.[] | { transaction: .tx.h, block: .blk, alias: .out[0].s2, pointer: .out[0].s3, type: .out[0].s4 , seq: .out[0].s5 }]'
 	} }
