@@ -47,7 +47,7 @@ async function offsetbitdb(query, offset, nothrow = false) {
 		query.q[f0] = n
 	}
 	if (query.r.f) {
-		query.r.f = query.r.f.replace(/[^\[]\d[^0-9a-z]/g, d => d[0] + (parseInt(d[1]) + offset) + d.slice(2))
+		query.r.f = query.r.f.replace(/[^\[]\d([^0-9a-z]|$)/g, d => d[0] + (parseInt(d[1]) + offset) + d.slice(2))
 	}
 	return await bitdb(query, nothrow)
 }
@@ -79,8 +79,8 @@ async function bitdb(query, nothrow = false) {
 		}
 	}
 	res = await res.text()
+	//process.stderr.write(res + '\n')
 	try {
-		//console.log(res)
 		let json = JSON.parse(res)
 		if (json.u && json.c && json.u.concat && json.c.concat && json.u.length > 0) {
 			return json.u.concat(json.c)
