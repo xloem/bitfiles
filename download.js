@@ -32,11 +32,11 @@ async function bcatdownload(txid, fn = undefined)
 
 async function dstatus(addr, key)
 {
-	let more = true
 	let limit = 100
 	let skip = 0
-	while (more) {
-		let res = await bitdb.autobitdb(bitdb.d(addr, limit, skip))
+	let offset = 1
+	while (offset >= 0) {
+		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
 		for (let r of res) {
 			if (r.alias != key) { continue }
 			let time = (new Date(r.block.t*1000)).toISOString()
@@ -50,8 +50,8 @@ async function dstatus(addr, key)
 				console.log('Unknown protocol ' + app)
 			}
 		}
-		if (res.length < limit) break
-		skip += res.length
+		if (res.length < limit) { -- offset; skip = 0 }
+		else { skip += res.length }
 	}
 	console.log('Not found')
 }
@@ -59,11 +59,11 @@ async function dstatus(addr, key)
 async function ddownload(addr, keypfx)
 {
 	let keys = {}
-	let more = true
 	let limit = 100
 	let skip = 0
-	while (more) {
-		let res = await bitdb.autobitdb(bitdb.d(addr, limit, skip))
+	let offset = 1
+	while (offset >= 0) {
+		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
 		for (let r of res) {
 			if (r.alias.length < keypfx || r.alias.slice(0,keypfx.length) !== keypfx) { continue }
 			if (r.alias in keys) { continue }
@@ -78,25 +78,25 @@ async function ddownload(addr, keypfx)
 				console.log('Unknown protocol ' + app)
 			}
 		}
-		if (res.length < limit) break
-		skip += res.length
+		if (res.length < limit) { -- offset; skip = 0 }
+		else { skip += res.length }
 	}
 
 }
 
 async function dlog(addr)
 {
-	let more = true
 	let limit = 100
 	let skip = 0
-	while (more) {
-		let res = await bitdb.autobitdb(bitdb.d(addr, limit, skip))
+	let offset = 1
+	while (offset >= 0) {
+		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
 		for (let r of res) {
 			let time = (new Date(r.block.t*1000)).toISOString()
 			console.log(`${time} ${r.transaction} ${r.alias} ${r.type} ${r.pointer}`)
 		}
-		if (res.length < limit) break
-		skip += res.length
+		if (res.length < limit) { -- offset; skip = 0 }
+		else { skip += res.length }
 	}
 }
 
@@ -132,10 +132,14 @@ async function bcatstream(txid, stream)
 
 async function cstatus(sha256)
 {
-	let c = await bitdb.autobitdb(bitdb.c(sha256))
-	let app = await bitdb.autobitdb(bitdb.app(c))
-	app = bitdb.parseapp(app)
-	console.log(`${app}://${c}`)
+	let c = await bitdb.bitdb(bitdb.c(sha256))
+	let app = await bitdb.bitdb(bitdb.app(c))
+	let parsed = bitdb.parseapp(app)
+	if (parsed == app) {
+		app = await bitdb.offsetbitdb(bitdb.app(c), 1)
+		parsed = bitdb.parseapp(app)
+	}
+	console.log(`${parsed}://${c}`)
 }
 
 async function bcatstatus(txid)

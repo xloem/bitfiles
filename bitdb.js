@@ -25,20 +25,34 @@ async function autobitdb(query) {
 		return await bitdb(query)
 	} catch(e) {
 		if (e.code != 'NoResults') { throw e }
-		for (let a in [query.q, query.r]) { if (!a) { continue }
-		for (let b of a) {
-		for (let f in b) {
-			if (f.match('\\d$')) {
-				let f2 = f.slice(0,-1) + (parseInt(f.slice(-1))+1)
-				query.q.find[f2] = query.q.find[f]
-				delete query.q.find[f]
-			}
-		}}}
-		return await bitdb(query)
+		return await offsetbitdb(query, 1, true)
 	}
 }
 
-async function bitdb(query) {
+
+async function offsetbitdb(query, offset, nothrow = false) {
+	for (let f0 of ['find', 'project', 'sort']) {
+		let a = query.q[f0]
+		if (!a) { continue }
+		let n = {}
+		for (let f in a) {
+			if (f.match('\\d$')) {
+				let v = a[f]
+				let f2 = f.slice(0,-1) + (parseInt(f.slice(-1))+offset)
+				n[f2] = v
+			} else {
+				n[f] = a[f]
+			}
+		}
+		query.q[f0] = n
+	}
+	if (query.r.f) {
+		query.r.f = query.r.f.replace(/[^\[]\d[^0-9a-z]/g, d => d[0] + (parseInt(d[1]) + offset) + d.slice(2))
+	}
+	return await bitdb(query, nothrow)
+}
+
+async function bitdb(query, nothrow = false) {
 	let url, key
 	//process.stderr.write(JSON.stringify(query) + '\n')
 	url = genesisUrl
@@ -66,6 +80,7 @@ async function bitdb(query) {
 	}
 	res = await res.text()
 	try {
+		//console.log(res)
 		let json = JSON.parse(res)
 		if (json.u && json.c && json.u.concat && json.c.concat && json.u.length > 0) {
 			return json.u.concat(json.c)
@@ -73,10 +88,12 @@ async function bitdb(query) {
 			return json.u
 		} else if (json.c && (json.c.length === undefined || json.c.length !== 0)) {
 			return json.c
-		} else {
+		} else if (!nothrow) {
 			let e = new Error("no results for " + JSON.stringify(query))
 			e.code = 'NoResults'
 			throw e
+		} else {
+			return []
 		}
 	} catch(e) {
 		if (e.name === 'SyntaxError') {
@@ -196,6 +213,7 @@ function parsebcat(res)
 
 module.exports = {
 	bitdb: bitdb,
+	offsetbitdb: offsetbitdb,
 	autobitdb: autobitdb,
 	tx: tx,
 	app: app,
