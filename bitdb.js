@@ -22,6 +22,7 @@ const APPS = {
 
 async function bitdb(query) {
 	let url, key
+	//process.stderr.write(JSON.stringify(query) + '\n')
 	url = genesisUrl
 	key = genesisKey
 	if (query.q.find.c) {
