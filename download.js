@@ -6,7 +6,7 @@ Queue = require('./queue.js')
 
 async function bdownload(txid, fn = undefined)
 {
-	let b = await bitdb.bitdb(bitdb.b(txid))
+	let b = await bitdb.autobitdb(bitdb.b(txid))
 	if (fn === undefined) {
 		fn = b.filename
 	}
@@ -16,7 +16,7 @@ async function bdownload(txid, fn = undefined)
 async function bcatdownload(txid, fn = undefined)
 {
 	if (fn === undefined) {
-		let bcat = await bitdb.bitdb(bitdb.bcat(txid))
+		let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
 		fn = bcat.filename
 	}
 	let fd = fs.openSync(fn, 'w')
@@ -36,11 +36,11 @@ async function dstatus(addr, key)
 	let limit = 100
 	let skip = 0
 	while (more) {
-		let res = await bitdb.bitdb(bitdb.d(addr, limit, skip))
+		let res = await bitdb.autobitdb(bitdb.d(addr, limit, skip))
 		for (let r of res) {
 			if (r.alias != key) { continue }
 			let time = (new Date(r.block.t*1000)).toISOString()
-			let app = bitdb.parseapp(await bitdb.bitdb(bitdb.app(r.pointer)))
+			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
 			console.log(`${time} ${r.transaction} ${r.type} ${app}://${r.pointer}`)
 			if (app === 'BCAT') {
 				await bcatstatus(r.pointer)
@@ -63,13 +63,13 @@ async function ddownload(addr, keypfx)
 	let limit = 100
 	let skip = 0
 	while (more) {
-		let res = await bitdb.bitdb(bitdb.d(addr, limit, skip))
+		let res = await bitdb.autobitdb(bitdb.d(addr, limit, skip))
 		for (let r of res) {
 			if (r.alias.length < keypfx || r.alias.slice(0,keypfx.length) !== keypfx) { continue }
 			if (r.alias in keys) { continue }
 			keys[r.alias] = true
 			console.log(r.alias)
-			let app = bitdb.parseapp(await bitdb.bitdb(bitdb.app(r.pointer)))
+			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
 			if (app === 'BCAT') {
 				await bcatdownload(r.pointer, r.alias)
 			} else if (app === 'B') {
@@ -90,7 +90,7 @@ async function dlog(addr)
 	let limit = 100
 	let skip = 0
 	while (more) {
-		let res = await bitdb.bitdb(bitdb.d(addr, limit, skip))
+		let res = await bitdb.autobitdb(bitdb.d(addr, limit, skip))
 		for (let r of res) {
 			let time = (new Date(r.block.t*1000)).toISOString()
 			console.log(`${time} ${r.transaction} ${r.alias} ${r.type} ${r.pointer}`)
@@ -108,12 +108,12 @@ async function txstatus(txid)
 
 async function bcatstream(txid, stream)
 {
-	let bcat = await bitdb.bitdb(bitdb.bcat(txid))
+	let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
 	bcat = bitdb.parsebcat(bcat)
 	let queue = new Queue(10);
 	for (let chunk of bcat.data) {
 		queue.add(async (chunk) => {
-			let res = await bitdb.bitdb(bitdb.bcatpart(chunk))
+			let res = await bitdb.autobitdb(bitdb.bcatpart(chunk))
 			try {
 				return Buffer.from(res, 'base64')
 			} catch(e) {
@@ -132,15 +132,15 @@ async function bcatstream(txid, stream)
 
 async function cstatus(sha256)
 {
-	let c = await bitdb.bitdb(bitdb.c(sha256))
-	let app = await bitdb.bitdb(bitdb.app(c))
+	let c = await bitdb.autobitdb(bitdb.c(sha256))
+	let app = await bitdb.autobitdb(bitdb.app(c))
 	app = bitdb.parseapp(app)
 	console.log(`${app}://${c}`)
 }
 
 async function bcatstatus(txid)
 {
-	let bcat = bitdb.parsebcat(await bitdb.bitdb(bitdb.bcat(txid)))
+	let bcat = bitdb.parsebcat(await bitdb.autobitdb(bitdb.bcat(txid)))
 	console.log('Filename: ' + bcat.filename)
 	console.log('ID: bcat://' + txid)
 	console.log('Author: ' + bcat.sender)
@@ -162,7 +162,7 @@ async function bcatstatus(txid)
 	let queue = new Queue(10);
 	for (let chunk of bcat.data) {
 		queue.add(async (chunk) => {
-			let res = await bitdb.bitdb(bitdb.bcatpart(chunk))
+			let res = await bitdb.autobitdb(bitdb.bcatpart(chunk))
 			res = Buffer.from(res, 'base64')
 			if (!res.length) throw res;
 			if (res.length > maxsize) { maxsize = res.length }

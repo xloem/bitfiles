@@ -20,6 +20,24 @@ const APPS = {
 	[D_]: 'D'
 }
 
+async function autobitdb(query) {
+	try {
+		return await bitdb(query)
+	} catch(e) {
+		if (e.code != 'NoResults') { throw e }
+		for (let a in [query.q, query.r]) { if (!a) { continue }
+		for (let b of a) {
+		for (let f in b) {
+			if (f.match('\\d$')) {
+				let f2 = f.slice(0,-1) + (parseInt(f.slice(-1))+1)
+				query.q.find[f2] = query.q.find[f]
+				delete query.q.find[f]
+			}
+		}}}
+		return await bitdb(query)
+	}
+}
+
 async function bitdb(query) {
 	let url, key
 	//process.stderr.write(JSON.stringify(query) + '\n')
@@ -168,6 +186,7 @@ function parsebcat(res)
 	let d = r.data
 	r.data = []
 	let i = 7; let chunkid;
+	if (d.s2 == BCat_) { ++ i; }
 	while (chunkid = d['h'+i]) {
 		r.data.push(chunkid)
 		++ i
@@ -177,6 +196,7 @@ function parsebcat(res)
 
 module.exports = {
 	bitdb: bitdb,
+	autobitdb: autobitdb,
 	tx: tx,
 	app: app,
 	b: b,
