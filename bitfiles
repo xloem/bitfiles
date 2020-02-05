@@ -5,6 +5,12 @@ let download = require('./download')
 let bitdb = require('./bitdb')
 
 let action = argv._[0]
+if (!action || action == '--help' || action == '-h') {
+	let path = require('path')
+	let readme = require('fs').readFileSync(path.join(path.dirname(module.filename), 'README.md'))
+	process.stdout.write(readme)
+	process.exit()
+}
 let url = argv._[1]
 if (!url) { url = action; action = 'status' }
 url = url.split('://')
