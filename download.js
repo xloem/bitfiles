@@ -141,6 +141,12 @@ async function txstatus(txid)
 {
 	let tx = await bitdb.bitdb(bitdb.tx(txid))
 	console.log(JSON.stringify(tx))
+	let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(txid)))
+	if (app === 'BCAT') {
+		await bcatstatus(txid)
+	} else if (app === 'B') {
+		await bstatus(txid)
+	}
 }
 
 async function bstream(txid, stream)
@@ -189,6 +195,8 @@ async function bstatus(txid)
 	console.log('Author: ' + b.sender)
 	console.log('Content-Type: ' + b.mime)
 	console.log('Encoding: ' + b.encoding)
+	console.log('Date: ' + (new Date(b.block.t*1000)).toISOString())
+	console.log('Block: ' + b.block.i + ' ' + b.block.h)
 	console.log('Size: ' + b.data.length)
 }
 
@@ -202,6 +210,8 @@ async function bcatstatus(txid)
 	console.log('Content-Type: ' + bcat.mime)
 	console.log('Encoding: ' + bcat.encoding)
 	console.log('Flag: ' + bcat.flag)
+	console.log('Date: ' + (new Date(bcat.block.t*1000)).toISOString())
+	console.log('Block: ' + bcat.block.i + ' ' + bcat.block.h)
 	let totchunks = bcat.data.length
 	console.log(`Chunks: ${totchunks}`)
 	let badchunks = 0
