@@ -38,14 +38,22 @@ if (action == 'status') {
 		download.bcatstatus(id)
 	} else if (type == 'C') {
 		download.cstatus(id)
+	} else if (type == 'B') {
+		download.bstatus(id)
 	}
 } else if (action == 'stream') {
 	if (type == 'BCAT') {
 		download.bcatstream(id, process.stdout)
+	} else if (type == 'B') {
+		download.bstream(id, process.stdout)
 	}
 } else if (action == 'download') {
 	if (type == 'D') {
 		download.ddownload(id, dkey)
+	} else if (type == 'BCAT') {
+		download.bcatdownload(id)
+	} else if (type == 'B') {
+		download.bdownload(id)
 	}
 } else if (action == 'bitdb') {
 	(async () => {

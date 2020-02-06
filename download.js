@@ -10,7 +10,11 @@ async function bdownload(txid, fn = undefined)
 	if (fn === undefined) {
 		fn = b.filename
 	}
-	fs.writeFileSync(fn, Buffer.from(b.data, 'base64'))
+	process.stdout.write(`Downloading ${fn} ...\n`)
+	let b = Buffer.from(b.data, 'base64')
+	fs.writeFileSync(fn, b)
+	process.stdout.write(`Wrote ${b.length} bytes...\n`)
+	process.stdout.write('Done.\n')
 }
 
 async function bcatdownload(txid, fn = undefined)
@@ -19,14 +23,15 @@ async function bcatdownload(txid, fn = undefined)
 		let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
 		fn = bcat.filename
 	}
+	process.stdout.write(`Downloading ${fn} ...\n`)
 	let fd = fs.openSync(fn, 'w')
 	let total = 0
 	await bcatstream(txid, {write: data => {
 		fs.writeSync(fd, data)
 		total += data.length
-		process.stdout.write(`${total} ...\r`)
+		process.stdout.write(`Wrote ${total} bytes...\r`)
 	}})
-	process.stdout.write('                       \r')
+	process.stdout.write('\nDone.\n')
 	fs.closeSync(fd)
 }
 
@@ -45,7 +50,7 @@ async function dstatus(addr, key)
 			if (app === 'BCAT') {
 				await bcatstatus(r.pointer)
 			} else if (app === 'B') {
-				await txstatus(r.pointer)
+				await bstatus(r.pointer)
 			} else {
 				console.log('Unknown protocol ' + app)
 			}
@@ -106,6 +111,12 @@ async function txstatus(txid)
 	console.log(JSON.stringify(tx))
 }
 
+async function bstream(txid, stream)
+{
+	let b = await bitdb.autobitdb(bitdb.b(txid))
+	stream.write(Buffer.from(b.data, 'base64'))
+}
+
 async function bcatstream(txid, stream)
 {
 	let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
@@ -140,6 +151,17 @@ async function cstatus(sha256)
 		parsed = bitdb.parseapp(app)
 	}
 	console.log(`${parsed}://${c}`)
+}
+
+async function bstatus(txid)
+{
+	let b = await bitdb.autobitdb(bitdb.b(txid))
+	console.log('Filename: ' + b.filename)
+	console.log('ID: bcat://' + txid)
+	console.log('Author: ' + b.sender)
+	console.log('Content-Type: ' + b.mime)
+	console.log('Encoding: ' + b.encoding)
+	console.log('Size: ' + b.data.length)
 }
 
 async function bcatstatus(txid)
@@ -192,11 +214,14 @@ async function bcatstatus(txid)
 
 module.exports = {
 	txstatus: txstatus,
+	bstatus: bstatus,
 	bcatstatus: bcatstatus,
+	bstream: bstream,
 	bcatstream: bcatstream,
 	dlog: dlog,
 	dstatus: dstatus,
 	ddownload: ddownload,
 	bcatdownload: bcatdownload,
-	cstatus: cstatus
+	cstatus: cstatus,
+	bdownload: bdownload
 }
