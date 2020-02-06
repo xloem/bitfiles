@@ -21,6 +21,7 @@ if (url[1]) {
 	id = path.shift()
 	dkey = path.join('/')
 } else {
+	type = 'TX'
 	path = url[0]
 	id = url[0]
 }
