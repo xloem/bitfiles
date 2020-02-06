@@ -137,6 +137,7 @@ function app(txid)
 {
 	return { 'v': 3, 'q': { 'find': {
 		'tx.h': txid,
+		'out.s0': {'$exists': false},
 		'out.s1': {'$exists': true}
 	}, 'project': {
 		'out.s1': 1
