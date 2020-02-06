@@ -40,17 +40,20 @@ async function dstatus(addr, key)
 	let limit = 100
 	let skip = 0
 	let offset = 1
+	let found = false
 	while (offset >= 0) {
 		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
 		for (let r of res) {
 			if (r.alias != key) { continue }
 			let time = (new Date(r.block.t*1000)).toISOString()
 			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
-			console.log(`${time} ${r.transaction} ${r.type} ${app}://${r.pointer}`)
+			console.log(`${time} ${r.transaction} ${r.type} ${app||'tx'}://${r.pointer}`)
 			if (app === 'BCAT') {
 				await bcatstatus(r.pointer)
+				found = true
 			} else if (app === 'B') {
 				await bstatus(r.pointer)
+				found = true
 			} else {
 				console.log(`${r.pointer}: Unknown protocol "${app}"`)
 			}
@@ -58,7 +61,7 @@ async function dstatus(addr, key)
 		if (res.length < limit) { -- offset; skip = 0 }
 		else { skip += res.length }
 	}
-	console.log('Not found')
+	if (!found) { console.log('Not found') }
 }
 
 async function dstream(addr, stream, key)

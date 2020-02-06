@@ -31,6 +31,7 @@ async function autobitdb(query) {
 
 
 async function offsetbitdb(query, offset, nothrow = false) {
+	let fix = []
 	for (let f0 of ['find', 'project', 'sort']) {
 		let a = query.q[f0]
 		if (!a) { continue }
@@ -44,12 +45,22 @@ async function offsetbitdb(query, offset, nothrow = false) {
 				n[f] = a[f]
 			}
 		}
+		let f9 = f0
+		fix.push(()=>{query.q[f9] = a})
 		query.q[f0] = n
 	}
-	if (query.r.f) {
-		query.r.f = query.r.f.replace(/[^\[]\d([^0-9a-z]|$)/g, d => d[0] + (parseInt(d[1]) + offset) + d.slice(2))
+	if (query.r && query.r.f) {
+		let a = query.r.f
+		fix.push(()=>{query.r.f = a})
+		query.r.f = a.replace(/[^\[]\d([^0-9a-z]|$)/g, d => d[0] + (parseInt(d[1]) + offset) + d.slice(2))
 	}
-	return await bitdb(query, nothrow)
+	try {
+		return await bitdb(query, nothrow)
+	} catch(e) {
+		for (let f of fix) { f() }
+		throw e
+	}
+	return ret
 }
 
 async function bitdb(query, nothrow = false) {
