@@ -46,6 +46,8 @@ if (action == 'status') {
 		download.bcatstream(id, process.stdout)
 	} else if (type == 'B') {
 		download.bstream(id, process.stdout)
+	} else if (type == 'D') {
+		download.dstream(id, process.stdout, dkey)
 	}
 } else if (action == 'download') {
 	if (type == 'D') {

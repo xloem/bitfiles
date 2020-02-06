@@ -22,10 +22,10 @@ const APPS = {
 
 async function autobitdb(query) {
 	try {
-		return await bitdb(query)
+		return await offsetbitdb(query, 1)
 	} catch(e) {
 		if (e.code != 'NoResults') { throw e }
-		return await offsetbitdb(query, 1, true)
+		return await bitdb(query, true)
 	}
 }
 
@@ -126,6 +126,7 @@ function app(txid)
 {
 	return { 'v': 3, 'q': { 'find': {
 		'tx.h': txid,
+		'out.s1': {'$exists': true}
 	}, 'project': {
 		'out.s1': 1
 	} }, 'r': {

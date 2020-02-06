@@ -11,9 +11,9 @@ async function bdownload(txid, fn = undefined)
 		fn = b.filename
 	}
 	process.stdout.write(`Downloading ${fn} ...\n`)
-	let b = Buffer.from(b.data, 'base64')
-	fs.writeFileSync(fn, b)
-	process.stdout.write(`Wrote ${b.length} bytes...\n`)
+	let buf = Buffer.from(b.data, 'base64')
+	fs.writeFileSync(fn, buf)
+	process.stdout.write(`Wrote ${buf.length} bytes...\n`)
 	process.stdout.write('Done.\n')
 }
 
@@ -52,13 +52,37 @@ async function dstatus(addr, key)
 			} else if (app === 'B') {
 				await bstatus(r.pointer)
 			} else {
-				console.log('Unknown protocol ' + app)
+				console.log(`${r.pointer}: Unknown protocol "${app}"`)
 			}
 		}
 		if (res.length < limit) { -- offset; skip = 0 }
 		else { skip += res.length }
 	}
 	console.log('Not found')
+}
+
+async function dstream(addr, stream, key)
+{
+	let limit = 100
+	let skip = 0
+	let offset = 1
+	while (offset >= 0) {
+		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip, key), offset, true)
+		for (let r of res) {
+			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			if (app === 'BCAT') {
+				await bcatstream(r.pointer, stream)
+				return
+			} else if (app === 'B') {
+				await bstream(r.pointer, stream)
+				return
+			} else {
+				process.stderr.write(`${r.pointer}: Unknown protocol "${app}"\n`)
+			}
+		}
+		if (res.length < limit) { -- offset; skip = 0 }
+		else { skip += res.length }
+	}
 }
 
 async function ddownload(addr, keypfx)
@@ -73,14 +97,14 @@ async function ddownload(addr, keypfx)
 			if (r.alias.length < keypfx || r.alias.slice(0,keypfx.length) !== keypfx) { continue }
 			if (r.alias in keys) { continue }
 			keys[r.alias] = true
-			console.log(r.alias)
+			//console.log(r.alias)
 			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
 			if (app === 'BCAT') {
 				await bcatdownload(r.pointer, r.alias)
 			} else if (app === 'B') {
 				await bdownload(r.pointer, r.alias)
 			} else {
-				console.log('Unknown protocol ' + app)
+				console.log(`${r.pointer}: Unknown protocol "${app}"`)
 			}
 		}
 		if (res.length < limit) { -- offset; skip = 0 }
@@ -144,12 +168,8 @@ async function bcatstream(txid, stream)
 async function cstatus(sha256)
 {
 	let c = await bitdb.bitdb(bitdb.c(sha256))
-	let app = await bitdb.bitdb(bitdb.app(c))
+	let app = await bitdba.autobitdb(bitdb.app(c))
 	let parsed = bitdb.parseapp(app)
-	if (parsed == app) {
-		app = await bitdb.offsetbitdb(bitdb.app(c), 1)
-		parsed = bitdb.parseapp(app)
-	}
 	console.log(`${parsed}://${c}`)
 }
 
@@ -157,7 +177,7 @@ async function bstatus(txid)
 {
 	let b = await bitdb.autobitdb(bitdb.b(txid))
 	console.log('Filename: ' + b.filename)
-	console.log('ID: bcat://' + txid)
+	console.log('ID: b://' + txid)
 	console.log('Author: ' + b.sender)
 	console.log('Content-Type: ' + b.mime)
 	console.log('Encoding: ' + b.encoding)
@@ -221,6 +241,7 @@ module.exports = {
 	dlog: dlog,
 	dstatus: dstatus,
 	ddownload: ddownload,
+	dstream: dstream,
 	bcatdownload: bcatdownload,
 	cstatus: cstatus,
 	bdownload: bdownload
