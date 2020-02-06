@@ -35,16 +35,16 @@ async function bcatdownload(txid, fn = undefined)
 	fs.closeSync(fd)
 }
 
-async function dstatus(addr, key)
+async function dstatus(addr, key, quick = false)
 {
 	let limit = 100
 	let skip = 0
 	let offset = 1
 	let found = false
 	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
+		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip, key), offset, true)
 		for (let r of res) {
-			if (r.alias != key) { continue }
+			//if (r.alias != key) { continue }
 			let time = (new Date(r.block.t*1000)).toISOString()
 			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
 			console.log(`${time} ${r.transaction} ${r.type} ${app||'tx'}://${r.pointer}`)
@@ -57,11 +57,16 @@ async function dstatus(addr, key)
 			} else {
 				console.log(`${r.pointer}: Unknown protocol "${app}"`)
 			}
+			if (quick) { offset = -1; break }
 		}
 		if (res.length < limit) { -- offset; skip = 0 }
 		else { skip += res.length }
 	}
-	if (!found) { console.log('Not found') }
+	if (!found) {
+		let e = new Error('Not found')
+		e.code = 'NoResults'
+		throw e
+	}
 }
 
 async function dstream(addr, stream, key)

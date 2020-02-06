@@ -41,6 +41,15 @@ if (action == 'status') {
 	} else if (type == 'B') {
 		download.bstatus(id)
 	}
+} else if (action == 'quickcheck') {
+	(()=>{
+		if (type == 'D') {
+			return download.dstatus(id, dkey, true)
+		}
+	})().catch(e=>{
+		console.log(e)
+		process.exit(-1)
+	})
 } else if (action == 'stream') {
 	if (type == 'BCAT') {
 		download.bcatstream(id, process.stdout)
