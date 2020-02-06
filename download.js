@@ -242,18 +242,26 @@ async function bcatstatus(txid)
 			return res
 		}, chunk)
 	}
-	queue.on('reject', e => {
-		//console.log(`Bad Chunk?: #${chunkindex[chunk]} ${chunk} ${e.toString()}`)
-		console.log(`Bad Chunk?: ${e.toString()}`)
+	queue.on('reject', data => {
+		console.log('Bad Chunk: ' + data.input)
 		++ badchunks
 	})
-	queue.on('resolve', e => {
-		hash.update(e)
+	queue.on('resolve', data => {
+		hash.update(data.data)
 	})
-	await queue.wait()
+	try {
+		await queue.wait()
+	} catch(e) { }
 	console.log('ID: C://' + hash.digest('hex'))
 	console.log('Max Chunk Size: ' + maxsize)
-	console.log('Size: ' + len)
+	if (badchunks) {
+		console.log('Total Good Data Size: ' + len)
+		let estimatedmissing = badchunks * maxsize
+		console.log('Estimated Missing Data Size: ' + estimatedmissing)
+		console.log('Estimated Total Size: ' + (estimatedmissing + len))
+	} else {
+		console.log('Total size: ' + len)
+	}
 }
 
 module.exports = {
