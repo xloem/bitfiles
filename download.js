@@ -35,7 +35,7 @@ async function bcatdownload(txid, fn = undefined)
 	fs.closeSync(fd)
 }
 
-async function dstatus(addr, key, quick = false)
+async function dstatus(addr, key, mode = null)
 {
 	let limit = 100
 	let skip = 0
@@ -46,18 +46,23 @@ async function dstatus(addr, key, quick = false)
 		for (let r of res) {
 			//if (r.alias != key) { continue }
 			let time = (new Date(r.block.t*1000)).toISOString()
-			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			let app = (mode == 'list') ? 'tx' : bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
 			console.log(`${time} ${r.transaction} ${r.type} ${app||'tx'}://${r.pointer}`)
-			if (app === 'BCAT') {
-				await bcatstatus(r.pointer)
-				found = true
-			} else if (app === 'B') {
-				await bstatus(r.pointer)
+
+			if (mode == 'list') {
 				found = true
 			} else {
-				console.log(`${r.pointer}: Unknown protocol "${app}"`)
+				if (app === 'BCAT') {
+					await bcatstatus(r.pointer)
+					found = true
+				} else if (app === 'B') {
+					await bstatus(r.pointer)
+					found = true
+				} else {
+					console.log(`${r.pointer}: Unknown protocol "${app}"`)
+				}
 			}
-			if (quick) { offset = -1; break }
+			if (mode == 'quick') { offset = -1; break }
 		}
 		if (res.length < limit) { -- offset; skip = 0 }
 		else { skip += res.length }
@@ -121,7 +126,7 @@ async function ddownload(addr, keypfx)
 
 }
 
-async function dlog(addr)
+async function dlog(addr, mode = null)
 {
 	let limit = 100
 	let skip = 0
@@ -130,7 +135,7 @@ async function dlog(addr)
 		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
 		for (let r of res) {
 			let time = (new Date(r.block.t*1000)).toISOString()
-			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			let app = mode == 'list' ? 'tx' : bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
 			console.log(`${time} ${r.transaction} ${r.alias} ${r.type} ${app || 'tx'}://${r.pointer}`)
 		}
 		if (res.length < limit) { -- offset; skip = 0 }

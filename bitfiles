@@ -41,10 +41,16 @@ if (action == 'status') {
 	} else if (type == 'B') {
 		download.bstatus(id)
 	}
+} else if (action == 'list') {
+	if (dkey) {
+		download.dstatus(id, dkey, 'list')
+	} else {
+		download.dlog(id, 'list')
+	}
 } else if (action == 'quickcheck') {
 	(()=>{
 		if (type == 'D') {
-			return download.dstatus(id, dkey, true)
+			return download.dstatus(id, dkey, 'quick')
 		}
 	})().catch(e=>{
 		console.log(e)
