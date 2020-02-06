@@ -130,7 +130,8 @@ async function dlog(addr)
 		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
 		for (let r of res) {
 			let time = (new Date(r.block.t*1000)).toISOString()
-			console.log(`${time} ${r.transaction} ${r.alias} ${r.type} ${r.pointer}`)
+			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			console.log(`${time} ${r.transaction} ${r.alias} ${r.type} ${app || 'tx'}://${r.pointer}`)
 		}
 		if (res.length < limit) { -- offset; skip = 0 }
 		else { skip += res.length }
