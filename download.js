@@ -45,7 +45,7 @@ async function dstatus(addr, key, mode = null)
 		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip, key), offset, true)
 		for (let r of res) {
 			//if (r.alias != key) { continue }
-			let time = (new Date(r.block.t*1000)).toISOString()
+			let time = r.block ? (new Date(r.block.t*1000)).toISOString() : 'unconfirmed'
 			let app = (mode == 'list') ? 'tx' : bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
 			console.log(`${time} ${r.transaction} ${r.type} ${app||'tx'}://${r.pointer}`)
 
@@ -134,7 +134,7 @@ async function dlog(addr, mode = null)
 	while (offset >= 0) {
 		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
 		for (let r of res) {
-			let time = (new Date(r.block.t*1000)).toISOString()
+			let time = r.block ? (new Date(r.block.t*1000)).toISOString() : 'unconfirmed'
 			let app = mode == 'list' ? 'tx' : bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
 			console.log(`${time} ${r.transaction} ${r.alias} ${r.type} ${app || 'tx'}://${r.pointer}`)
 		}
@@ -201,8 +201,8 @@ async function bstatus(txid)
 	console.log('Author: ' + b.sender)
 	console.log('Content-Type: ' + b.mime)
 	console.log('Encoding: ' + b.encoding)
-	console.log('Date: ' + (new Date(b.block.t*1000)).toISOString())
-	console.log('Block: ' + b.block.i + ' ' + b.block.h)
+	console.log('Date: ' + (b.block ? (new Date(b.block.t*1000)).toISOString() : 'unconfirmed'))
+	console.log('Block: ' + (b.block ? (b.block.i + ' ' + b.block.h) : 'unconfirmed'))
 	console.log('Size: ' + b.data.length)
 }
 
@@ -216,8 +216,8 @@ async function bcatstatus(txid)
 	console.log('Content-Type: ' + bcat.mime)
 	console.log('Encoding: ' + bcat.encoding)
 	console.log('Flag: ' + bcat.flag)
-	console.log('Date: ' + (new Date(bcat.block.t*1000)).toISOString())
-	console.log('Block: ' + bcat.block.i + ' ' + bcat.block.h)
+	console.log('Date: ' + (bcat.block ? (new Date(bcat.block.t*1000)).toISOString() : 'unconfirmed'))
+	console.log('Block: ' + (bcat.block ? bcat.block.i + ' ' + bcat.block.h : 'unconfirmed'))
 	let totchunks = bcat.data.length
 	console.log(`Chunks: ${totchunks}`)
 	let badchunks = 0
