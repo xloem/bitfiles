@@ -28,7 +28,7 @@ if (url[1]) {
 
 if (action == 'status') {
 	if (type == 'TX') {
-		download.txstatus(id)
+		download.txstatus(id).catch(x=>{console.log(x); process.exit(-1);})
 	} else if (type == 'D') {
 		if (dkey) {
 			download.dstatus(id, dkey)
