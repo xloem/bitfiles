@@ -1,5 +1,8 @@
 const EventEmitter = require('events')
 
+const promiseFinally = require('promise.prototype.finally')
+promiseFinally.shim()
+
 class Queue extends EventEmitter
 {
 	constructor(concurrency = 1) {
@@ -37,7 +40,7 @@ class Queue extends EventEmitter
 		if (this.pending.length == 0) { return }
 		++ this.active
 		let next = this.pending.shift()
-		next.func(...next.data).then(x => {
+		promiseFinally(next.func(...next.data)).then(x => {
 			this.results[next.index - this.completedIndex] = { 'status': 'resolve', 'data': x }
 		}).catch(x => {
 			this.results[next.index - this.completedIndex] = { 'status': 'reject', 'data': x }
