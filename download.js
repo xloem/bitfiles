@@ -247,7 +247,7 @@ async function bcatstatus(txid)
 		++ badchunks
 	})
 	queue.on('resolve', data => {
-		hash.update(data.data)
+		hash.update(data)
 	})
 	try {
 		await queue.wait()
