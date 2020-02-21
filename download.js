@@ -2,6 +2,7 @@ crypto = require('crypto')
 fs = require('fs')
 
 bitdb = require('./bitdb.js')
+blockchair = require('./blockchair.js')
 Queue = require('./queue.js')
 
 async function bdownload(txid, fn = undefined)
@@ -145,14 +146,27 @@ async function dlog(addr, mode = null)
 
 async function txstatus(txid)
 {
-	let tx = await bitdb.bitdb(bitdb.tx(txid))
-	console.log(JSON.stringify(tx))
+	let tx
+	try {
+		console.log(`BitDB status of tx://${txid}`)
+		tx = await bitdb.bitdb(bitdb.tx(txid))
+	} catch(e) {
+		if (e.code == 'NoResults') {
+			console.log('Not found')
+			await mstatus(txid);
+		} else {
+			throw e
+		}
+	}
 	let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(txid)))
 	if (app === 'BCAT') {
 		await bcatstatus(txid)
 	} else if (app === 'B') {
 		await bstatus(txid)
 	}
+	//if ((await blockchair.priority(txid)).position) {
+		await mstatus(txid)
+	//}
 }
 
 async function bstream(txid, stream)
@@ -191,6 +205,30 @@ async function cstatus(sha256)
 	let app = await bitdba.autobitdb(bitdb.app(c))
 	let parsed = bitdb.parseapp(app)
 	console.log(`${parsed}://${c}`)
+}
+
+async function mstatus(txid)
+{
+	let last_ratio = null
+	console.log(`Blockchair Mempool status of tx://${txid}`)
+	while (true) {
+		let date = (new Date()).toISOString()
+		let priority = await blockchair.priority(txid)
+		if (!priority.position) {
+			console.log(`${date} Not in mempool`)
+			return
+		}
+		// we'd like to show how it's moving scalewise
+
+		let ratio = 100 * (priority.out_of - priority.position) / (priority.out_of - 1)
+		let rate = null
+		if (last_ratio) {
+			console.log(`${date} ${priority.position} / ${priority.out_of}  +${ratio - last_ratio}%`)
+		} else {
+			console.log(`${date} ${priority.position} / ${priority.out_of}`)
+		}
+		last_ratio = ratio
+	}
 }
 
 async function bstatus(txid)
@@ -276,5 +314,6 @@ module.exports = {
 	dstream: dstream,
 	bcatdownload: bcatdownload,
 	cstatus: cstatus,
-	bdownload: bdownload
+	bdownload: bdownload,
+	mstatus: mstatus
 }
