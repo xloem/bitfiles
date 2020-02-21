@@ -1,12 +1,20 @@
 const bcUrl = 'https://api.blockchair.com/'
 const fetch = require('node-fetch')
 
+let last_req_time = 0
+
 async function api(network, endpoint, data = null)
 {
+	let time = Date.now()
+	if (time - last_req_time < 60000) {
+		// blockchair without api key allows a daily average of 1 req/minute, reset at midnight utc
+		await new Promise(resolve => setTimeout(resolve, last_req_time + 60000 - time))
+	}
 	const url = bcUrl + network + endpoint
 	let res
 	while (true) {
 		try {
+			last_req_time = Date.now()
 			res = await fetch(url, data ? { method: 'POST', body: data } : undefined)
 			break
 		} catch(e) {
@@ -37,7 +45,7 @@ async function broadcast(tx, network = 'bitcoin-sv')
 async function priority(txid, network = 'bitcoin-sv')
 {
 	let res = await api(network, '/dashboards/transaction/' + txid + '/priority')
-	return res[txid]
+	return res[txid].priority
 }
 
 module.exports = {

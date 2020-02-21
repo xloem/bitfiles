@@ -222,7 +222,7 @@ async function mstatus(txid)
 
 		let ratio = 100 * (priority.out_of - priority.position) / (priority.out_of - 1)
 		let rate = null
-		if (last_ratio) {
+		if (last_ratio && ratio != last_ratio) {
 			console.log(`${date} ${priority.position} / ${priority.out_of}  +${ratio - last_ratio}%`)
 		} else {
 			console.log(`${date} ${priority.position} / ${priority.out_of}`)
