@@ -1,6 +1,6 @@
 {
   "name": "bitfiles",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "bsv file support",
   "main": "bitfiles",
   "dependencies": {

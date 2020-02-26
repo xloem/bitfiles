@@ -12,13 +12,13 @@ async function bdownload(txid, fn = undefined)
 	if (fn === undefined) {
 		fn = b.filename
 	}
-	process.stdout.write(`Downloading ${fn} ...\n`)
+	console.log(`Downloading ${fn} ...`)
 	let buf = Buffer.from(b.data, 'base64')
 	let tmpfn = fn + '.bitfiles.tmp'
 	fse.writeFileSync(tmpfn, buf)
 	fse.renameSync(tmpfn, fn)
-	process.stdout.write(`Wrote ${buf.length} bytes...\n`)
-	process.stdout.write('Done.\n')
+	console.log(`Wrote ${buf.length} bytes...`)
+	console.log('Done.')
 }
 
 async function bcatdownload(txid, fn = undefined)
@@ -27,16 +27,16 @@ async function bcatdownload(txid, fn = undefined)
 		let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
 		fn = bcat.filename
 	}
-	process.stdout.write(`Downloading ${fn} ...\n`)
+	console.log(`Downloading ${fn} ...`)
 	let tmpfn = fn + '.bitfiles.tmp'
 	let fd = fse.openSync(tmpfn, 'w')
 	let total = 0
 	await bcatstream(txid, {write: data => {
 		fse.writeSync(fd, data)
 		total += data.length
-		process.stdout.write(`Wrote ${total} bytes...\r`)
+		process.stderr.write(`Wrote ${total} bytes...\r`)
 	}})
-	process.stdout.write('\nDone.\n')
+	console.log('\nDone.\n')
 	fse.closeSync(fd)
 	fse.renameSync(tmpfn, fn)
 }
@@ -296,7 +296,7 @@ async function bcatstatus(txid)
 			if (res.length > maxsize) { maxsize = res.length }
 			len += res.length
 			++ goodchunks
-			process.stdout.write(`(good:${goodchunks} bad:${badchunks} size:${len})\r`)
+			process.stderr.write(`(good:${goodchunks} bad:${badchunks} size:${len})\r`)
 			return res
 		}, chunk)
 	}
