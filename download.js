@@ -115,11 +115,12 @@ async function ddownload(addr, keypfx, onlyupdate = true)
 		for (let r of res) {
 			if (r.alias.length < keypfx || r.alias.slice(0,keypfx.length) !== keypfx) { continue }
 			if (r.alias in keys) { continue }
-			let pfxdir = path.dirname(keypfx)
-			if (pfxdir === '.') { pfxdir = '' }
-			let fn = r.alias.slice(pfxdir.length)
+			let rio = keypfx.lastIndexOf('/')
+			let fn = (rio === -1 ? r.alias : r.alias.slice(rio))
 			if (fn[0] === '/') { fn = fn.slice(1) }
 			if (fn[fn.length-1] === '/') { continue }
+			// okay, we don't want the git-remote-bsv.git subdir to be written out
+			// a quick fix is to make sure it is treated as an ignored directory component
 			fse.ensureDirSync(path.dirname(fn))
 			keys[r.alias] = true
 			//console.log(r.alias)
