@@ -1,3 +1,8 @@
+This is a quick tool to inspect and work with files uploaded to the BSV blockchain.
+It also can query transactions.
+
+You can view such files on the web at https://bico.media/, or upload them with a tool like bsvup.
+
 Not all features are implemented.  As always, feel free to PR or fork and add on or rip up.
 
 Examples:
