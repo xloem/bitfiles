@@ -51,7 +51,14 @@ async function priority(txid, network = 'bitcoin-sv')
 	return res[txid].priority
 }
 
+async function getTX(txid, network = 'bitcoin-sv')
+{
+	let res = await api(network, '/raw/transaction/' + txid)
+	return res[txid].raw_transaction
+}
+
 module.exports = {
 	broadcast: broadcast,
-	priority: priority
+	priority: priority,
+	getTX: getTX
 }
