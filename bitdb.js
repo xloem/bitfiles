@@ -2,7 +2,7 @@ const genesisUrl = 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLS
 const genesisKey = ['159bcdKY4spcahzfTZhBbFBXrTWpoh4rd3']
 const dataUrl = 'https://data.bitdb.network/q/1KuUr2pSJDao97XM8Jsq8zwLS6W1WtFfLg/'
 const dataKey = ['1Px8CKdrfJUw7eVrTmVYjYtmtDoxjD6tGt']
-const fetch = require('node-fetch')
+const axios = require('axios')
 
 const D_ = '19iG3WTYSsbyos3uJ733yK4zEioi1FesNU'
 const B_ = '19HxigV4QyBv3tHpQVcUEQyq1pzZVdoAut'
@@ -74,11 +74,11 @@ async function bitdb(query, nothrow = false) {
 	}
 	let b64 = Buffer.from(JSON.stringify(query)).toString('base64')
 	url = url + b64
-	let headers = { headers: { key: [ key ] } }
+	let config = { headers: { key: key }, transformResponse:x=>x}
 	let res
 	while (true) {
 		try {
-			res = (await fetch(url, headers))
+			res = (await axios.get(url, config)).data
 			break
 		} catch(e) {
 			if (e.code == 'EAI_AGAIN') {
@@ -89,7 +89,6 @@ async function bitdb(query, nothrow = false) {
 			throw e
 		}
 	}
-	res = await res.text()
 	//process.stderr.write(res + '\n')
 	try {
 		let json = JSON.parse(res)
@@ -108,7 +107,7 @@ async function bitdb(query, nothrow = false) {
 		}
 	} catch(e) {
 		if (e.name === 'SyntaxError') {
-			throw new Error('Invalid server response: ' + JSON.stringify(res))
+			throw new Error('Invalid server response: ' + res);
 		}
 		throw e
 	}

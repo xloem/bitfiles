@@ -1,5 +1,5 @@
 const wocUrl = 'https://api.whatsonchain.com/v1/bsv/'
-const fetch = require('node-fetch')
+const axios = require('axios')
 
 async function broadcast(tx, network = 'main')
 {
@@ -9,11 +9,10 @@ async function broadcast(tx, network = 'main')
 		tx = tx.toString()
 	}
 	const url = wocUrl + network + '/tx/raw'
-	const headers = { method: 'POST', body: tx }
 	let res
 	while (true) {
 		try {
-			res = await fetch(url, headers)
+			res = await axios.post(url, tx)
 			break
 		} catch(e) {
 			if (e.code == 'EAI_AGAIN') {
@@ -24,7 +23,7 @@ async function broadcast(tx, network = 'main')
 			throw e
 		}
 	}
-	return res.json()
+	return res.data
 }
 
 module.exports = {

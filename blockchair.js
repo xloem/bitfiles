@@ -1,5 +1,5 @@
 const bcUrl = 'https://api.blockchair.com/'
-const fetch = require('node-fetch')
+const axios = require('axios')
 
 let last_req_time = 0
 
@@ -15,7 +15,11 @@ async function api(network, endpoint, data = null)
 	while (true) {
 		try {
 			last_req_time = Date.now()
-			res = await fetch(url, data ? { method: 'POST', body: data } : undefined)
+			if (data) {
+				res = (await axios.post(url, data)).data
+			} else {
+				res = (await axios.get(url)).data
+			}
 			break
 		} catch(e) {
 			if (e.code == 'EAI_AGAIN') {
@@ -26,7 +30,6 @@ async function api(network, endpoint, data = null)
 			throw e
 		}
 	}
-	res = await res.json()
 	if (res.context.code == 200) { return res.data }
 	throw res.context
 }
