@@ -1,5 +1,6 @@
 crypto = require('crypto')
-fs = require('fs')
+fse = require('fs-extra')
+path = require('path')
 
 bitdb = require('./bitdb.js')
 blockchair = require('./blockchair.js')
@@ -13,7 +14,9 @@ async function bdownload(txid, fn = undefined)
 	}
 	process.stdout.write(`Downloading ${fn} ...\n`)
 	let buf = Buffer.from(b.data, 'base64')
-	fs.writeFileSync(fn, buf)
+	let tmpfn = fn + '.bitfiles.tmp'
+	fse.writeFileSync(tmpfn, buf)
+	fse.renameSync(tmpfn, fn)
 	process.stdout.write(`Wrote ${buf.length} bytes...\n`)
 	process.stdout.write('Done.\n')
 }
@@ -25,15 +28,17 @@ async function bcatdownload(txid, fn = undefined)
 		fn = bcat.filename
 	}
 	process.stdout.write(`Downloading ${fn} ...\n`)
-	let fd = fs.openSync(fn, 'w')
+	let tmpfn = fn + '.bitfiles.tmp'
+	let fd = fse.openSync(tmpfn, 'w')
 	let total = 0
 	await bcatstream(txid, {write: data => {
-		fs.writeSync(fd, data)
+		fse.writeSync(fd, data)
 		total += data.length
 		process.stdout.write(`Wrote ${total} bytes...\r`)
 	}})
 	process.stdout.write('\nDone.\n')
-	fs.closeSync(fd)
+	fse.closeSync(fd)
+	fse.renameSync(tmpfn, fn)
 }
 
 async function dstatus(addr, key, mode = null)
@@ -99,7 +104,7 @@ async function dstream(addr, stream, key)
 	}
 }
 
-async function ddownload(addr, keypfx)
+async function ddownload(addr, keypfx, onlyupdate = true)
 {
 	let keys = {}
 	let limit = 100
@@ -110,13 +115,28 @@ async function ddownload(addr, keypfx)
 		for (let r of res) {
 			if (r.alias.length < keypfx || r.alias.slice(0,keypfx.length) !== keypfx) { continue }
 			if (r.alias in keys) { continue }
+			let pfxdir = path.dirname(keypfx)
+			if (pfxdir === '.') { pfxdir = '' }
+			let fn = r.alias.slice(pfxdir.length)
+			if (fn[0] === '/') { fn = fn.slice(1) }
+			if (fn[fn.length-1] === '/') { continue }
+			fse.ensureDirSync(path.dirname(fn))
 			keys[r.alias] = true
 			//console.log(r.alias)
+			if (onlyupdate) {
+				try {
+					const stat = fse.statSync(fn)
+					if (stat.mtimeMs / 1000 >= r.block.t) {
+						// nothing new
+						continue
+					}
+				} catch(e) { }
+			}
 			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
 			if (app === 'BCAT') {
-				await bcatdownload(r.pointer, r.alias)
+				await bcatdownload(r.pointer, fn)
 			} else if (app === 'B') {
-				await bdownload(r.pointer, r.alias)
+				await bdownload(r.pointer, fn)
 			} else {
 				console.log(`${r.pointer}: Unknown protocol "${app}"`)
 			}
