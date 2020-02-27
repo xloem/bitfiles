@@ -4,7 +4,23 @@ path = require('path')
 
 bitdb = require('./bitdb.js')
 blockchair = require('./blockchair.js')
+mattercloud = require('./mattercloud.js')
 Queue = require('./queue.js')
+
+async function txdownload(txid, fn = undefined)
+{
+	if (fn === undefined) {
+		fn = txid
+	}
+	console.log(`Downloading ${fn} ...`)
+	let tmpfn = fn + '.bitfiles.tmp'
+	await txstream(txid, {write: data => {
+		fse.writeFileSync(tmpfn, data)
+		console.log(`Wrote ${data.length} bytes...`)
+	}})
+	fse.renameSync(tmpfn, fn)
+	console.log('Done.')
+}
 
 async function bdownload(txid, fn = undefined)
 {
@@ -36,9 +52,10 @@ async function bcatdownload(txid, fn = undefined)
 		total += data.length
 		process.stderr.write(`Wrote ${total} bytes...\r`)
 	}})
-	console.log('\nDone.\n')
+	process.stderr.write('\n')
 	fse.closeSync(fd)
 	fse.renameSync(tmpfn, fn)
+	console.log('Done.')
 }
 
 async function dstatus(addr, key, mode = null)
@@ -165,6 +182,14 @@ async function dlog(addr, mode = null)
 	}
 }
 
+async function addrstatus(addr)
+{
+	let utxos = await mattercloud.getUtxos(addr)
+	console.log(`Mattercloud status of addr://${addr}`)
+	console.log(`Balance in satoshis: ${utxos.reduce((sats, utxo) => sats += utxo.satoshis, 0)}`)
+	console.log(`UTXO count: ${utxos.length}`)
+}
+
 async function txstatus(txid)
 {
 	let tx
@@ -189,6 +214,13 @@ async function txstatus(txid)
 		await mstatus(txid)
 	//}
 }
+
+async function txstream(txid, stream)
+{
+	let data = await blockchair.getTX(txid)
+	stream.write(Buffer.from(data))
+}
+
 
 async function bstream(txid, stream)
 {
@@ -324,7 +356,10 @@ async function bcatstatus(txid)
 }
 
 module.exports = {
+	addrstatus: addrstatus,
 	txstatus: txstatus,
+	txstream: txstream,
+	txdownload: txdownload,
 	bstatus: bstatus,
 	bcatstatus: bcatstatus,
 	bstream: bstream,

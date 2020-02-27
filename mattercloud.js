@@ -9,6 +9,13 @@ async function broadcast(tx)
 	return res.txid
 }
 
+async function getUtxos(addr)
+{
+	const res = await mattercloud.getUtxos([addr])
+	return res
+}
+
 module.exports = {
-	broadcast: broadcst
+	broadcast: broadcast,
+	getUtxos: getUtxos
 }
