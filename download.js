@@ -201,6 +201,7 @@ async function txstatus(txid)
 		if (e.code == 'NoResults') {
 			console.log('Not found')
 			await mstatus(txid);
+			tx = await bitdb.bitdb(bitdb.tx(txid))
 		} else {
 			throw e
 		}
@@ -210,10 +211,15 @@ async function txstatus(txid)
 		await bcatstatus(txid)
 	} else if (app === 'B') {
 		await bstatus(txid)
+	} else {
+		console.log(`ID: ${app||'tx'}://${txid}`)
+		console.log('Date: ' + (tx.blk ? (new Date(tx.blk.t*1000)).toISOString() : 'unconfirmed'))
+		console.log('Block: ' + (tx.blk ? (tx.blk.i + ' ' + tx.blk.h) : 'unconfirmed'))
+		//console.log(JSON.stringify(tx))
 	}
-	//if ((await blockchair.priority(txid)).position) {
+	if (!tx.blk) {
 		await mstatus(txid)
-	//}
+	}
 }
 
 async function txstream(txid, stream)

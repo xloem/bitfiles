@@ -188,7 +188,9 @@ function tx(id)
 {
 	return { 'v': 3, 'q': { 'find': {
 		'tx.h': id,
-	} } }
+	} }, 'r': {
+		'f': '.[]'
+	} }
 }
 
 function bcatpart(txid)
