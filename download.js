@@ -268,10 +268,12 @@ async function cstatus(sha256)
 
 async function mstatus(txid)
 {
+	let first_ratio = null
+	let first_time = null
 	let last_ratio = null
 	console.log(`Blockchair Mempool status of tx://${txid}`)
 	while (true) {
-		let date = (new Date()).toISOString()
+		let date = new Date()
 		let priority = await blockchair.priority(txid)
 		if (!priority.position) {
 			console.log(`${date} Not in mempool`)
@@ -282,8 +284,12 @@ async function mstatus(txid)
 		let ratio = 100 * (priority.out_of - priority.position) / (priority.out_of - 1)
 		let rate = null
 		if (last_ratio && ratio != last_ratio) {
-			console.log(`${date} ${priority.position} / ${priority.out_of}  +${ratio - last_ratio}%`)
+			let change = ratio - last_ratio
+			let rate = (ratio - first_ratio) / ((date.getTime() - first_date.getTime()) / 1000 / 60 / 60)
+			console.log(`${date.toISOString()} ${priority.position} / ${priority.out_of}  +${change}% (${rate}%/hr)`)
 		} else {
+			first_ratio = ratio
+			first_date = date
 			console.log(`${date} ${priority.position} / ${priority.out_of}`)
 		}
 		last_ratio = ratio
