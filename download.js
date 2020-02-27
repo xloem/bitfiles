@@ -5,6 +5,7 @@ path = require('path')
 bitdb = require('./bitdb.js')
 blockchair = require('./blockchair.js')
 mattercloud = require('./mattercloud.js')
+whatsonchain = require('./whatsonchain.js')
 Queue = require('./queue.js')
 
 async function txdownload(txid, fn = undefined)
@@ -217,7 +218,12 @@ async function txstatus(txid)
 
 async function txstream(txid, stream)
 {
-	let data = await blockchair.getTX(txid)
+	let data
+	try {
+		data = await whatsonchain.getTX(txid)
+	} catch(e) {
+		data = await blockchair.getTX(txid)
+	}
 	stream.write(Buffer.from(data))
 }
 

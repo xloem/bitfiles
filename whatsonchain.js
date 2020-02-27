@@ -1,18 +1,17 @@
 const wocUrl = 'https://api.whatsonchain.com/v1/bsv/'
 const axios = require('axios')
 
-async function broadcast(tx, network = 'main')
+async function api(network, req, data = null)
 {
-	if (tx.toString().match(/[^0-9a-fA-F\s]/)) {
-		tx = tx.toString('hex')
-	} else {
-		tx = tx.toString()
-	}
-	const url = wocUrl + network + '/tx/raw'
+	const url = wocUrl + network + '/' + req
 	let res
 	while (true) {
 		try {
-			res = await axios.post(url, tx)
+			if (data) {
+				res = await axios.post(url, data)
+			} else {
+				res = await axios.get(url)
+			}
 			break
 		} catch(e) {
 			if (e.code == 'EAI_AGAIN') {
@@ -26,6 +25,22 @@ async function broadcast(tx, network = 'main')
 	return res.data
 }
 
+async function broadcast(tx, network = 'main')
+{
+	if (tx.toString().match(/[^0-9a-fA-F\s]/)) {
+		tx = tx.toString('hex')
+	} else {
+		tx = tx.toString()
+	}
+	return await api(network, 'tx/raw', tx)
+}
+
+async function getTX(txid, network = 'main')
+{
+	return await api(network, 'tx/' + txid + '/hex')
+}
+
 module.exports = {
-	broadcast: broadcast
+	broadcast: broadcast,
+	getTX: getTX
 }
