@@ -447,6 +447,11 @@ async function bcatstatus(txid)
 }
 
 module.exports = {
+	bitdb: bitdb,
+	blockchair: blockchair,
+	mattercloud: mattercloud,
+	whatsonchain: whatsonchain,
+
 	addrstatus: addrstatus,
 	addrdownload: addrdownload,
 	tx: tx,
