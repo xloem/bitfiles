@@ -3,7 +3,10 @@
   "version": "1.1.0",
   "description": "bsv file support",
   "main": "index.js",
-  "bin": "bitfiles",
+  "bin": {
+    "bitfiles" : "./bitfiles",
+    "D-to-git-fast-import" : "./D-to-git-fast-import"
+  },
   "dependencies": {
     "axios": "^0.19.2",
     "events": "^3.1.0",
