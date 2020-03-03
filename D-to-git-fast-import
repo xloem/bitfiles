@@ -3,8 +3,9 @@
 let argv = {_: process.argv.slice(2)}//require('minimist')(process.argv.slice(2))
 
 bitdb = require('./bitdb.js')
-download = require('./download.js')
+bitfiles = require('.')
 
+fs = require('fs')
 os = require('os')
 
 let mark=0
@@ -51,7 +52,7 @@ async function one(author, r)
 				stat = await bitdb.bitdb(bitdb.bcat(r.pointer))
 				len = 0
 				let fd = fs.openSync(fn, 'w')
-				await download.bcatstream(r.pointer, {write: data => {
+				await bitfiles.bcatstream(r.pointer, {write: data => {
 					data = Buffer.from(data, 'base64')
 					fs.writeSync(fd, data)
 					len += data.length
@@ -78,7 +79,9 @@ async function one(author, r)
 	++ mark
 	console.log('commit refs/heads/master')
 	console.log(`mark :${mark}`);
-	console.log(`original-oid ${r.transaction}`)
+	//// old versions of git, including the one in Ubuntu 18 LTS,
+	//// don't support original-oid
+	// console.log(`original-oid ${r.transaction}`)
 	if (stat.sender) {
 		console.log(`author <${stat.sender}> ${stat.block.t} +0000`)
 	}
