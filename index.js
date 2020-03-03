@@ -268,7 +268,7 @@ async function tx(txid)
 	} catch(e) {
 		data = await blockchair.getTX(txid)
 	}
-	return Buffer.from(data)
+	return data
 }
 
 async function txstream(txid, stream)
