@@ -98,6 +98,29 @@ async function dstatus(addr, key, mode = null)
 	}
 }
 
+async function d(addr, stream, key)
+{
+	let limit = 100
+	let skip = 0
+	let offset = 1
+	while (offset >= 0) {
+		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip, key), offset, true)
+		for (let r of res) {
+			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			if (app === 'BCAT') {
+				return await bcat(r.pointer)
+			} else if (app === 'B') {
+				return await b(r.pointer)
+			} else {
+				process.stderr.write(`${r.pointer}: Unknown protocol "${app}"\n`)
+			}
+		}
+		if (res.length < limit) { -- offset; skip = 0 }
+		else { skip += res.length }
+	}
+	throw 'not found'
+}
+
 async function dstream(addr, stream, key)
 {
 	let limit = 100
@@ -237,7 +260,7 @@ async function txstatus(txid)
 	}
 }
 
-async function txstream(txid, stream)
+async function tx(txid)
 {
 	let data
 	try {
@@ -245,14 +268,49 @@ async function txstream(txid, stream)
 	} catch(e) {
 		data = await blockchair.getTX(txid)
 	}
-	stream.write(Buffer.from(data))
+	return Buffer.from(data)
 }
 
+async function txstream(txid, stream)
+{
+	stream.write(await tx(txid))
+}
+
+async function b(txid)
+{
+	let b = await bitdb.autobitdb(bitdb.b(txid))
+	return Buffer.from(b.data, 'base64')
+}
 
 async function bstream(txid, stream)
 {
-	let b = await bitdb.autobitdb(bitdb.b(txid))
-	stream.write(Buffer.from(b.data, 'base64'))
+	stream.write(await b(txid))
+}
+
+async function bcat(txid)
+{
+	let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
+	bcat = bitdb.parsebcat(bcat)
+	let queue = new Queue(10);
+	for (let chunk of bcat.data) {
+		queue.add(async (chunk) => {
+			let res = await bitdb.autobitdb(bitdb.bcatpart(chunk))
+			try {
+				return Buffer.from(res, 'base64')
+			} catch(e) {
+				console.log('THROWING')
+				throw res;
+			}
+		}, chunk)
+	}
+	queue.on('reject', e => {
+		process.stderr.write('DATA MISSING\n')
+		queue.stop('reject', e)
+	})
+	let data = []
+	queue.on('resolve', x => data.push(x))
+	await queue.wait()
+	return Buffer.concat(data)
 }
 
 async function bcatstream(txid, stream)
@@ -391,19 +449,23 @@ async function bcatstatus(txid)
 module.exports = {
 	addrstatus: addrstatus,
 	addrdownload: addrdownload,
+	tx: tx,
 	txstatus: txstatus,
 	txstream: txstream,
 	txdownload: txdownload,
+	mstatus: mstatus,
+	b: b,
 	bstatus: bstatus,
-	bcatstatus: bcatstatus,
 	bstream: bstream,
+	bdownload: bdownload,
+	bcat: bcat,
+	bcatstatus: bcatstatus,
 	bcatstream: bcatstream,
+	bcatdownload: bcatdownload,
+	d: d,
 	dlog: dlog,
 	dstatus: dstatus,
 	ddownload: ddownload,
 	dstream: dstream,
-	bcatdownload: bcatdownload,
-	cstatus: cstatus,
-	bdownload: bdownload,
-	mstatus: mstatus
+	cstatus: cstatus
 }
