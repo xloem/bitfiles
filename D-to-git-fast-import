@@ -16,8 +16,9 @@ async function one(author, r)
 {
 	// for now we output everything, but would be reasonable to resume from
 	// a provided block or time.
+	let time = r.block ? (new Date(r.block.t * 1000)).toISOString() : 'unconfirmed'
 	if (r.alias[r.alias.length-1] === '/') {
-		console.log(`progress <ignoring entry for empty path component ${r.alias}>`)
+		console.log(`progress ${time} ${r.transactio} <ignoring entry for empty path component ${r.alias}>`)
 		return
 	}
 	if (r.block.h !== block && block !== null) {
@@ -27,7 +28,7 @@ async function one(author, r)
 		console.log(`checkpoint`)
 	}
 	block = r.block.h
-	console.log(`progress ${r.block.t} ${r.transaction} ${r.alias} ${r.type} ${r.pointer}`)
+	console.log(`progress ${time} ${r.transaction} ${r.alias} ${r.type} ${r.pointer}`)
 	if (r.type === 'c') {
 		try {
 			r.pointer = await bitdb.bitdb(bitdb.c(r.pointer))
