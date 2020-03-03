@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 let argv = {_: process.argv.slice(2)}//require('minimist')(process.argv.slice(2))
-let download = require('./download')
+let bitfiles = require('.')
 let bitdb = require('./bitdb')
 
 let action = argv._[0]
@@ -28,32 +28,32 @@ if (url[1]) {
 
 if (action == 'status') {
 	if (type == 'TX') {
-		download.txstatus(id).catch(x=>{console.log(x); process.exit(-1);})
+		bitfiles.txstatus(id).catch(x=>{console.log(x); process.exit(-1);})
 	} else if (type == 'ADDR' || type == 'BITCOIN') {
-		download.addrstatus(id)
+		bitfiles.addrstatus(id)
 	} else if (type == 'D') {
 		if (dkey) {
-			download.dstatus(id, dkey)
+			bitfiles.dstatus(id, dkey)
 		} else {
-			download.dlog(id)
+			bitfiles.dlog(id)
 		}
 	} else if (type == 'BCAT') {
-		download.bcatstatus(id)
+		bitfiles.bcatstatus(id)
 	} else if (type == 'C') {
-		download.cstatus(id)
+		bitfiles.cstatus(id)
 	} else if (type == 'B') {
-		download.bstatus(id)
+		bitfiles.bstatus(id)
 	}
 } else if (action == 'list') {
 	if (dkey) {
-		download.dstatus(id, dkey, 'list')
+		bitfiles.dstatus(id, dkey, 'list')
 	} else {
-		download.dlog(id, 'list')
+		bitfiles.dlog(id, 'list')
 	}
 } else if (action == 'quickcheck') {
 	(()=>{
 		if (type == 'D') {
-			return download.dstatus(id, dkey, 'quick')
+			return bitfiles.dstatus(id, dkey, 'quick')
 		}
 	})().catch(e=>{
 		console.log(e)
@@ -61,25 +61,25 @@ if (action == 'status') {
 	})
 } else if (action == 'stream') {
 	if (type == 'BCAT') {
-		download.bcatstream(id, process.stdout)
+		bitfiles.bcatstream(id, process.stdout)
 	} else if (type == 'B') {
-		download.bstream(id, process.stdout)
+		bitfiles.bstream(id, process.stdout)
 	} else if (type == 'D') {
-		download.dstream(id, process.stdout, dkey)
+		bitfiles.dstream(id, process.stdout, dkey)
 	} else if (type == 'TX') {
-		download.txstream(id, process.stdout)
+		bitfiles.txstream(id, process.stdout)
 	}
 } else if (action == 'download') {
 	if (type == 'D') {
-		download.ddownload(id, dkey)
+		bitfiles.ddownload(id, dkey)
 	} else if (type == 'BCAT') {
-		download.bcatdownload(id)
+		bitfiles.bcatdownload(id)
 	} else if (type == 'B') {
-		download.bdownload(id)
+		bitfiles.bdownload(id)
 	} else if (type == 'TX') {
-		download.txdownload(id)
+		bitfiles.txdownload(id)
 	} else if (type == 'ADDR' || type == 'BITCOIN') {
-		download.addrdownload(id)
+		bitfiles.addrdownload(id)
 	}
 } else if (action == 'bitdb') {
 	(async () => {
