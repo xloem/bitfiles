@@ -113,6 +113,19 @@ async function bitdb(query, nothrow = false) {
 	}
 }
 
+function inaddr(addr, limit, skip, reverse = true)
+{
+	return { 'v': 3, 'q': { 'find': {
+		'in.e.a': addr,
+	}, 'project': {
+		'tx.h': 1,
+		'blk.i': 1,
+	}, 'sort': {
+		'blk.i': reverse ? -1 : 1,
+	}, 'limit': limit, 'skip': skip }, 'r': {
+		'f': '[.[] | .tx.h]'
+	} }
+}
 
 function d(addr, limit, skip, key = undefined, reverse = true)
 {
@@ -230,6 +243,7 @@ module.exports = {
 	offsetbitdb: offsetbitdb,
 	autobitdb: autobitdb,
 	tx: tx,
+	inaddr: inaddr,
 	app: app,
 	b: b,
 	bcat: bcat,

@@ -183,10 +183,25 @@ async function dlog(addr, mode = null)
 	}
 }
 
+async function addrdownload(addr)
+{
+	let limit = 100
+	let skip = 0
+	console.log(`Downloading all raw transactions for bitcoin://${addr} ...`)
+	while (true) {
+		let res = await bitdb.bitdb(bitdb.inaddr(addr, limit, skip), true)
+		for (let txid of res) {
+			await txdownload(txid);
+		}
+		if (res.length < limit) { break; }
+		skip += res.length;
+	}
+}
+
 async function addrstatus(addr)
 {
 	let utxos = await mattercloud.getUtxos(addr)
-	console.log(`Mattercloud status of addr://${addr}`)
+	console.log(`Mattercloud status of bitcoin://${addr}`)
 	console.log(`Balance in satoshis: ${utxos.reduce((sats, utxo) => sats += utxo.satoshis, 0)}`)
 	console.log(`UTXO count: ${utxos.length}`)
 }
@@ -375,6 +390,7 @@ async function bcatstatus(txid)
 
 module.exports = {
 	addrstatus: addrstatus,
+	addrdownload: addrdownload,
 	txstatus: txstatus,
 	txstream: txstream,
 	txdownload: txdownload,

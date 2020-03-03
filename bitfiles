@@ -29,7 +29,7 @@ if (url[1]) {
 if (action == 'status') {
 	if (type == 'TX') {
 		download.txstatus(id).catch(x=>{console.log(x); process.exit(-1);})
-	} else if (type == 'ADDR') {
+	} else if (type == 'ADDR' || type == 'BITCOIN') {
 		download.addrstatus(id)
 	} else if (type == 'D') {
 		if (dkey) {
@@ -78,6 +78,8 @@ if (action == 'status') {
 		download.bdownload(id)
 	} else if (type == 'TX') {
 		download.txdownload(id)
+	} else if (type == 'ADDR' || type == 'BITCOIN') {
+		download.addrdownload(id)
 	}
 } else if (action == 'bitdb') {
 	(async () => {
