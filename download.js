@@ -183,7 +183,7 @@ async function dlog(addr, mode = null)
 	}
 }
 
-async function addrdownload(addr)
+async function addrdownload(addr, path = '.', ext = '')
 {
 	let limit = 100
 	let skip = 0
@@ -191,7 +191,7 @@ async function addrdownload(addr)
 	while (true) {
 		let res = await bitdb.bitdb(bitdb.inaddr(addr, limit, skip), true)
 		for (let txid of res) {
-			await txdownload(txid);
+			await txdownload(txid, `${path}/txid${ext}`);
 		}
 		if (res.length < limit) { break; }
 		skip += res.length;
