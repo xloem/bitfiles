@@ -1,28 +1,11 @@
 const wocUrl = 'https://api.whatsonchain.com/v1/bsv/'
-const axios = require('axios')
+const http = require('./http.js')
 
 async function api(network, req, data = null)
 {
 	const url = wocUrl + network + '/' + req
-	let res
-	while (true) {
-		try {
-			if (data) {
-				res = await axios.post(url, data)
-			} else {
-				res = await axios.get(url)
-			}
-			break
-		} catch(e) {
-			if (e.code == 'EAI_AGAIN') {
-				process.stderr.write('... network interruption ...\n')
-				await new Promise(resolve => setTimeout(resolve, 1000))
-				continue
-			}
-			throw e
-		}
-	}
-	return res.data
+	let res = JSON.parse(await http(url, undefined, data))
+	return res
 }
 
 async function broadcast(tx, network = 'main')

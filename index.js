@@ -1,12 +1,15 @@
-crypto = require('crypto')
-fse = require('fs-extra')
-path = require('path')
+const river = require('mississippi-promise')
+let crypto = require('crypto')
+let fse = require('fs-extra')
+let path = require('path')
 
+bitquery = require('./bitquery.js')
 bitdb = require('./bitdb.js')
 blockchair = require('./blockchair.js')
 mattercloud = require('./mattercloud.js')
 whatsonchain = require('./whatsonchain.js')
 Queue = require('./queue.js')
+
 
 async function txdownload(txid, fn = undefined)
 {
@@ -25,7 +28,7 @@ async function txdownload(txid, fn = undefined)
 
 async function bdownload(txid, fn = undefined)
 {
-	let b = await bitdb.autobitdb(bitdb.b(txid))
+	let b = await bitdb.autobitdb(bitquery.b(txid))
 	if (fn === undefined) {
 		fn = b.filename
 	}
@@ -41,7 +44,7 @@ async function bdownload(txid, fn = undefined)
 async function bcatdownload(txid, fn = undefined)
 {
 	if (fn === undefined) {
-		let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
+		let bcat = await bitdb.autobitdb(bitquery.bcat(txid))
 		fn = bcat.filename
 	}
 	console.log(`Downloading ${fn} ...`)
@@ -59,43 +62,65 @@ async function bcatdownload(txid, fn = undefined)
 	console.log('Done.')
 }
 
-async function dstatus(addr, key, mode = null)
+// this returns all past copies
+async function dstatus(addr = null, key = null, mode = null, reverse = true)
 {
-	let limit = 100
-	let skip = 0
-	let offset = 1
-	let found = false
-	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip, key), offset, true)
-		for (let r of res) {
-			//if (r.alias != key) { continue }
-			let time = r.block ? (new Date(r.block.t*1000)).toISOString() : 'unconfirmed'
-			let app = (mode == 'list') ? 'tx' : bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
-			console.log(`${time} ${r.transaction} ${r.type} ${app||'tx'}://${r.pointer}`)
-
-			if (mode == 'list') {
-				found = true
+	//console.log(`dstatus ${addr} ${key} ${mode}`)
+	//let found = false
+	let stream = await bitdb.bitdb(bitquery.d(addr, key, reverse))
+	/*
+	if (reverse) {
+		stream = river.merge(
+			await bitdb.bitdb(bitquery.offset(bitquery.d(addr, key), 1)),
+			await bitdb.bitdb(bitquery.offset(bitquery.d(addr, key), 0))
+		)
+	} else {
+		stream = river.merge(
+			await bitdb.bitdb(bitquery.offset(bitquery.d(addr, key, false), 0)),
+			await bitdb.bitdb(bitquery.offset(bitquery.d(addr, key, false), 1))
+		)
+	}
+	*/
+	return river.pipeline.obj(
+		stream,
+		river.through.obj(async result => {
+			//console.log('DSTATUS RESULT: ' + JSON.stringify(result))
+			/*
+			r.alias = decodeURIComponent(r.alias)
+			//if (r.alias != key) { return [] }
+			let result = {
+				service: 'bitdb',
+				application: 'D',
+				block: r.block ? {
+					time: new Date(r.block.t*1000),
+					height: r.block.i,
+					hash: r.block.h
+				} : undefined,
+				transaction: r.transaction,
+				type: r.type,
+			}
+			*/
+			if (mode === 'list') {
+				result.pointer = {
+					application: 'tx',
+					transaction: result.pointer
+				}
 			} else {
+				let app = (await bitdb.bitdb(bitquery.app(result.pointer))) || 'tx'
 				if (app === 'BCAT') {
-					await bcatstatus(r.pointer)
-					found = true
+					result.pointer = await bcatstatus(result.pointer)
 				} else if (app === 'B') {
-					await bstatus(r.pointer)
-					found = true
+					result.pointer = await bstatus(result.pointer)
 				} else {
-					console.log(`${r.pointer}: Unknown protocol "${app}"`)
+					result.pointer = await txstatus(result.pointer)
 				}
 			}
-			if (mode == 'quick') { offset = -1; break }
-		}
-		if (res.length < limit) { -- offset; skip = 0 }
-		else { skip += res.length }
-	}
-	if (!found) {
-		let e = new Error('Not found')
-		e.code = 'NoResults'
-		throw e
-	}
+			if (mode === 'quick') {
+				stream.destroy()
+			}
+			return result
+		})
+	)
 }
 
 async function d(addr, stream, key)
@@ -104,9 +129,10 @@ async function d(addr, stream, key)
 	let skip = 0
 	let offset = 1
 	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip, key), offset, true)
+		let res = await bitdb.offsetbitdb(bitquery.d(addr, limit, skip, key), offset, true)
 		for (let r of res) {
-			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			r.alias = decodeURIComponent(r.alias)
+			let app = bitquery.parseapp(await bitdb.autobitdb(bitquery.app(r.pointer)))
 			if (app === 'BCAT') {
 				return await bcat(r.pointer)
 			} else if (app === 'B') {
@@ -127,9 +153,10 @@ async function dstream(addr, stream, key)
 	let skip = 0
 	let offset = 1
 	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip, key), offset, true)
+		let res = await bitdb.offsetbitdb(bitquery.d(addr, limit, skip, key), offset, true)
 		for (let r of res) {
-			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			r.alias = decodeURIComponent(r.alias)
+			let app = bitquery.parseapp(await bitdb.autobitdb(bitquery.app(r.pointer)))
 			if (app === 'BCAT') {
 				await bcatstream(r.pointer, stream)
 				return
@@ -152,8 +179,9 @@ async function ddownload(addr, keypfx, onlyupdate = true)
 	let skip = 0
 	let offset = 1
 	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
+		let res = await bitdb.offsetbitdb(bitquery.d(addr, limit, skip), offset, true)
 		for (let r of res) {
+			r.alias = decodeURIComponent(r.alias)
 			if (r.alias.length < keypfx || r.alias.slice(0,keypfx.length) !== keypfx) { continue }
 			if (r.alias in keys) { continue }
 			let rio = keypfx.lastIndexOf('/')
@@ -174,7 +202,7 @@ async function ddownload(addr, keypfx, onlyupdate = true)
 					}
 				} catch(e) { }
 			}
-			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			let app = bitquery.parseapp(await bitdb.autobitdb(bitquery.app(r.pointer)))
 			if (app === 'BCAT') {
 				await bcatdownload(r.pointer, fn)
 			} else if (app === 'B') {
@@ -189,22 +217,31 @@ async function ddownload(addr, keypfx, onlyupdate = true)
 
 }
 
-async function dlog(addr, mode = null)
+/*async function dlog(addr, mode = null, reverse = true)
 {
-	let limit = 100
-	let skip = 0
-	let offset = 1
-	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
-		for (let r of res) {
-			let time = r.block ? (new Date(r.block.t*1000)).toISOString() : 'unconfirmed'
-			let app = mode == 'list' ? 'tx' : bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
-			console.log(`${time} ${r.transaction} ${r.alias} ${r.type} ${app || 'tx'}://${r.pointer}`)
-		}
-		if (res.length < limit) { -- offset; skip = 0 }
-		else { skip += res.length }
+	let stream
+	if (reverse) {
+		stream = concatstream([
+			await bitdb.bitdb(bitquery.offset(bitquery.d(addr), 1)),
+			await bitdb.bitdb(bitquery.offset(bitquery.d(addr), 0))
+		])
+	} else {
+		stream = concatstream([
+			await bitdb.bitdb(bitquery.offset(bitquery.d(addr, null, false), 0)),
+			await bitdb.bitdb(bitquery.offset(bitquery.d(addr, null, false), 1))
+
+		])
 	}
-}
+	return miss.pipe(
+		stream,
+		miss.through((r, encoding, callback) => {
+			r.alias = decodeURIComponent(r.alias)
+			let time = r.block ? (new Date(r.block.t*1000)).toISOString() : 'unconfirmed'
+			let app = mode == 'list' ? 'tx' : bitquery.parseapp(await bitdb.autobitdb(bitquery.app(r.pointer)))
+			console.log(`${time} ${r.transaction} ${r.alias} ${r.type} ${app || 'tx'}:/\/${r.pointer}`)
+		})
+	)
+}*/
 
 async function addrdownload(addr, path = '.', ext = '')
 {
@@ -212,7 +249,7 @@ async function addrdownload(addr, path = '.', ext = '')
 	let skip = 0
 	console.log(`Downloading all raw transactions for bitcoin://${addr} ...`)
 	while (true) {
-		let res = await bitdb.bitdb(bitdb.inaddr(addr, limit, skip), true)
+		let res = await bitdb.bitdb(bitquery.inaddr(addr, limit, skip), true)
 		for (let txid of res) {
 			await txdownload(txid, `${path}/txid${ext}`);
 		}
@@ -231,33 +268,36 @@ async function addrstatus(addr)
 
 async function txstatus(txid)
 {
-	let tx
-	try {
-		console.log(`BitDB status of tx://${txid}`)
-		tx = await bitdb.bitdb(bitdb.tx(txid))
-	} catch(e) {
-		if (e.code == 'NoResults') {
-			console.log('Not found')
-			await mstatus(txid);
-			tx = await bitdb.bitdb(bitdb.tx(txid))
-		} else {
-			throw e
+	let tx = await bitdb.bitdb(bitquery.tx(txid))
+	if (tx === null) {
+		return {
+			service: 'bitdb',
+			application: 'tx',
+			transaction: txid,
+			mempool: await mstatus(txid)
 		}
 	}
-	let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(txid)))
+	let app = bitquery.parseapp(await bitdb.autobitdb(bitquery.app(txid)))
 	if (app === 'BCAT') {
-		await bcatstatus(txid)
+		return await bcatstatus(txid)
 	} else if (app === 'B') {
-		await bstatus(txid)
+		return await bstatus(txid)
 	} else {
-		console.log(`ID: ${app||'tx'}://${txid}`)
-		console.log('Date: ' + (tx.blk ? (new Date(tx.blk.t*1000)).toISOString() : 'unconfirmed'))
-		console.log('Block: ' + (tx.blk ? (tx.blk.i + ' ' + tx.blk.h) : 'unconfirmed'))
-		//console.log(JSON.stringify(tx))
+		let result = {
+			service: 'bitdb',
+			application: app||'tx',
+			transaction: txid,
+			block: tx.blk ? {
+				time: new Date(tx.blk.t*1000),
+				height: tx.blk.i,
+				hash: tx.blk
+			} : undefined
+		}
 	}
 	if (!tx.blk) {
-		await mstatus(txid)
+		result.mempool = await mstatus(txid)
 	}
+	return result
 }
 
 async function tx(txid)
@@ -278,7 +318,7 @@ async function txstream(txid, stream)
 
 async function b(txid)
 {
-	let b = await bitdb.autobitdb(bitdb.b(txid))
+	let b = await bitdb.autobitdb(bitquery.b(txid))
 	return Buffer.from(b.data, 'base64')
 }
 
@@ -289,12 +329,12 @@ async function bstream(txid, stream)
 
 async function bcat(txid)
 {
-	let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
-	bcat = bitdb.parsebcat(bcat)
+	let bcat = await bitdb.autobitdb(bitquery.bcat(txid))
+	bcat = bitquery.parsebcat(bcat)
 	let queue = new Queue(10);
 	for (let chunk of bcat.data) {
 		queue.add(async (chunk) => {
-			let res = await bitdb.autobitdb(bitdb.bcatpart(chunk))
+			let res = await bitdb.autobitdb(bitquery.bcatpart(chunk))
 			try {
 				return Buffer.from(res, 'base64')
 			} catch(e) {
@@ -315,12 +355,12 @@ async function bcat(txid)
 
 async function bcatstream(txid, stream)
 {
-	let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
-	bcat = bitdb.parsebcat(bcat)
+	let bcat = await bitdb.autobitdb(bitquery.bcat(txid))
+	bcat = bitquery.parsebcat(bcat)
 	let queue = new Queue(10);
 	for (let chunk of bcat.data) {
 		queue.add(async (chunk) => {
-			let res = await bitdb.autobitdb(bitdb.bcatpart(chunk))
+			let res = await bitdb.autobitdb(bitquery.bcatpart(chunk))
 			try {
 				return Buffer.from(res, 'base64')
 			} catch(e) {
@@ -339,74 +379,79 @@ async function bcatstream(txid, stream)
 
 async function cstatus(sha256)
 {
-	let c = await bitdb.bitdb(bitdb.c(sha256))
-	let app = await bitdba.autobitdb(bitdb.app(c))
-	let parsed = bitdb.parseapp(app)
+	let c = await bitdb.bitdb(bitquery.c(sha256))
+	let app = await bitdb.autobitdb(bitquery.app(c))
+	let parsed = bitquery.parseapp(app)
 	console.log(`${parsed}://${c}`)
 }
 
+_priorities = {}
+
 async function mstatus(txid)
 {
-	let first_ratio = null
-	let first_time = null
-	let last_ratio = null
-	console.log(`Blockchair Mempool status of tx://${txid}`)
-	while (true) {
-		let date = new Date()
-		let priority = await blockchair.priority(txid)
-		if (!priority.position) {
-			console.log(`${date} Not in mempool`)
-			return
-		}
-		// we'd like to show how it's moving scalewise
-
-		let ratio = 100 * (priority.out_of - priority.position) / (priority.out_of - 1)
-		let rate = null
-		if (last_ratio && ratio != last_ratio) {
-			let change = ratio - last_ratio
-			let rate = (ratio - first_ratio) / ((date.getTime() - first_date.getTime()) / 1000 / 60 / 60)
-			console.log(`${date.toISOString()} ${priority.position} / ${priority.out_of}  +${change}% (${rate}%/hr)`)
-		} else {
-			first_ratio = ratio
-			first_date = date
-			console.log(`${date} ${priority.position} / ${priority.out_of}`)
-		}
-		last_ratio = ratio
+	let result = {
+		service: 'blockchair',
+		application: 'mempool',
+		time: new Date(),
 	}
+
+	let priority = await blockchair.priority(txid)
+	if (!priority.position) {
+		return result
+	}
+	result.position = priority.position
+	result.out_of = priority.out_of
+
+	if (!_priorities[txid]) {
+		_priorities[txid] = {}
+	}
+	state = _priorities[txid]
+
+	// we'd like to show how it's moving scalewise
+	let ratio = 100 * (priority.out_of - priority.position) / (priority.out_of - 1)
+	let rate = null
+	if (state.last_ratio && ratio != state.last_ratio) {
+		let change = ratio - state.last_ratio
+		let rate = (ratio - state.first_ratio) / ((result.time.getTime() - state.first_date.getTime()) / 1000 / 60 / 60)
+		result.change = change
+		result.change_hr = rate
+	} else {
+		state.first_ratio = ratio
+		state.first_date = result.time
+	}
+	state.last_ratio = ratio
+	return result
 }
 
 async function bstatus(txid)
 {
-	let b = await bitdb.autobitdb(bitdb.b(txid))
-	console.log('Filename: ' + b.filename)
-	console.log('ID: b://' + txid)
-	console.log('Author: ' + b.sender)
-	console.log('Content-Type: ' + b.mime)
-	console.log('Encoding: ' + b.encoding)
-	console.log('Date: ' + (b.block ? (new Date(b.block.t*1000)).toISOString() : 'unconfirmed'))
-	console.log('Block: ' + (b.block ? (b.block.i + ' ' + b.block.h) : 'unconfirmed'))
-	console.log('Size: ' + b.data.length)
+	let b = await bitdb.bitdb(bitquery.b(txid))
+	b.size = b.data.length
+	delete b.data
+	return b
 }
 
 async function bcatstatus(txid)
 {
-	let bcat = bitdb.parsebcat(await bitdb.autobitdb(bitdb.bcat(txid)))
-	console.log('Filename: ' + bcat.filename)
-	console.log('ID: bcat://' + txid)
-	console.log('Author: ' + bcat.sender)
-	console.log('Info: ' + bcat.info)
-	console.log('Content-Type: ' + bcat.mime)
-	console.log('Encoding: ' + bcat.encoding)
-	console.log('Flag: ' + bcat.flag)
-	console.log('Date: ' + (bcat.block ? (new Date(bcat.block.t*1000)).toISOString() : 'unconfirmed'))
-	console.log('Block: ' + (bcat.block ? bcat.block.i + ' ' + bcat.block.h : 'unconfirmed'))
+	let bcat = bitquery.parsebcat(await bitdb.autobitdb(bitquery.bcat(txid)))
+	const result = {
+		service: 'bitdb',
+		application: 'BCAT',
+		transaction: txid,
+		filename: bcat.filename,
+		sender: bcat.sender,
+		mime: bcat.mime,
+		encoding: bcat.encoding,
+		size: 0,
+		info: bcat.info,
+		flag: bcat.flag,
+		chunkstotal: bcat.data.length,
+		chunksbad: [],
+		chunksgood: 0,
+		chunkmaxsize: 0,
+	}
 	let totchunks = bcat.data.length
-	console.log(`Chunks: ${totchunks}`)
-	let badchunks = 0
-	let goodchunks = 0
-	let len = 0
 	let chunkindex = {}
-	let maxsize = 0
 	for (let i = 0; i < totchunks; ++ i) {
 		chunkindex[bcat.data[i]] = i
 	}
@@ -414,19 +459,18 @@ async function bcatstatus(txid)
 	let queue = new Queue(10);
 	for (let chunk of bcat.data) {
 		queue.add(async (chunk) => {
-			let res = await bitdb.autobitdb(bitdb.bcatpart(chunk))
+			let res = await bitdb.autobitdb(bitquery.bcatpart(chunk))
+			if (!res) throw res
 			res = Buffer.from(res, 'base64')
-			if (!res.length) throw res;
-			if (res.length > maxsize) { maxsize = res.length }
-			len += res.length
-			++ goodchunks
-			process.stderr.write(`(good:${goodchunks} bad:${badchunks} size:${len})\r`)
+			if (res.length > result.chunkmaxsize) { result.chunkmaxsize = res.length }
+			result.size += res.length
+			++ result.chunksgood
+			process.stderr.write(`(good:${result.chunksgood} bad:${result.chunksbad.length} size:${result.size})\r`)
 			return res
 		}, chunk)
 	}
 	queue.on('reject', data => {
-		console.log('Bad Chunk: ' + data.input)
-		++ badchunks
+		result.chunksbad.push(data.input)
 	})
 	queue.on('resolve', data => {
 		hash.update(data)
@@ -434,16 +478,8 @@ async function bcatstatus(txid)
 	try {
 		await queue.wait()
 	} catch(e) { }
-	console.log('ID: C://' + hash.digest('hex'))
-	console.log('Max Chunk Size: ' + maxsize)
-	if (badchunks) {
-		console.log('Total Good Data Size: ' + len)
-		let estimatedmissing = badchunks * maxsize
-		console.log('Estimated Missing Data Size: ' + estimatedmissing)
-		console.log('Estimated Total Size: ' + (estimatedmissing + len))
-	} else {
-		console.log('Total size: ' + len)
-	}
+	result.sha256 = hash.digest('hex')
+	return result
 }
 
 module.exports = {
@@ -468,7 +504,7 @@ module.exports = {
 	bcatstream: bcatstream,
 	bcatdownload: bcatdownload,
 	d: d,
-	dlog: dlog,
+	//dlog: dlog,
 	dstatus: dstatus,
 	ddownload: ddownload,
 	dstream: dstream,

@@ -4,19 +4,26 @@
   "description": "bsv file support",
   "main": "index.js",
   "bin": {
-    "bitfiles" : "./bitfiles",
-    "D-to-git-fast-import" : "./D-to-git-fast-import"
+    "bitfiles": "./bitfiles",
+    "D-to-git-fast-import": "./D-to-git-fast-import"
+  },
+  "engines": {
+    "node": ">=8.0"
   },
   "dependencies": {
-    "axios": "^0.19.2",
+    "cross-fetch": "^3.0.4",
     "events": "^3.1.0",
     "fs-extra": "^8.1.0",
     "mattercloudjs": "^1.0.6",
+    "minimist": "^1.2.5",
+    "mississippi-promise": "^1.2.1",
     "promise.prototype.finally": "^3.1.2"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "tape": "^4.13.2"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "for testjs in *.test.js; do node $testjs; done"
   },
   "repository": {
     "type": "git",

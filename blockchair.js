@@ -1,5 +1,5 @@
 const bcUrl = 'https://api.blockchair.com/'
-const axios = require('axios')
+const http = require('./http.js')
 
 let last_req_time = 0
 
@@ -11,25 +11,7 @@ async function api(network, endpoint, data = null)
 		await new Promise(resolve => setTimeout(resolve, last_req_time + 60000 - time))
 	}
 	const url = bcUrl + network + endpoint
-	let res
-	while (true) {
-		try {
-			last_req_time = Date.now()
-			if (data) {
-				res = (await axios.post(url, data)).data
-			} else {
-				res = (await axios.get(url)).data
-			}
-			break
-		} catch(e) {
-			if (e.code == 'EAI_AGAIN') {
-				process.stderr.write('... network interruption ...\n')
-				await new Promise(resolve => setTimeout(resolve, 1000))
-				continue
-			}
-			throw e
-		}
-	}
+	let res = await http.json(url, undefined, data)
 	if (res.context.code == 200) { return res.data }
 	throw res.context
 }
