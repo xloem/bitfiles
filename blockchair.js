@@ -27,11 +27,26 @@ async function api(network, endpoint, data = null)
 				await new Promise(resolve => setTimeout(resolve, 1000))
 				continue
 			}
-			throw e
+			if (e.response.data.context) {
+				res = e.response.data
+				break
+			}
+			let error = new Error(e)
+			error.code = 'UnknownError'
+			error.original = e
+			throw error
 		}
 	}
-	if (res.context.code == 200) { return res.data }
-	throw res.context
+	if (res.context.code === 200) { return res.data }
+
+	let error = new Error(res.context.error)
+	error.original = res.context
+	if (res.context.error.startsWith('Invalid transaction')) {
+		error.code = 'InvalidData'
+	} else {
+		error.code = 'UnknownError'
+	}
+	throw error
 }
 
 async function broadcast(tx, network = 'bitcoin-sv')

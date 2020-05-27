@@ -13,6 +13,7 @@ if (!action || action == '--help' || action == '-h') {
 }
 let url = argv._[1]
 if (!url) { url = action; action = 'status' }
+if (url === '-') { url = require('fs-extra').readFileSync(0).toString('utf-8'); }
 url = url.split('://')
 let type, path, id, dkey
 if (url[1]) {
@@ -44,6 +45,16 @@ if (action == 'status') {
 	} else if (type == 'B') {
 		bitfiles.bstatus(id)
 	}
+} else if (action == 'broadcast') {
+	(()=>{
+		return bitfiles.txbroadcast(id)
+	})().then(console.log).catch(e=>{
+		process.stderr.write(id +': '+e.message + '\n')
+		if (e.code !== 'AlreadyExists')
+		{
+			process.exit(-1)
+		}
+	})
 } else if (action == 'list') {
 	if (dkey) {
 		bitfiles.dstatus(id, dkey, 'list')

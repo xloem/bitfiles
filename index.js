@@ -1,3 +1,4 @@
+bsv = require('bsv')
 crypto = require('crypto')
 fse = require('fs-extra')
 path = require('path')
@@ -118,7 +119,9 @@ async function d(addr, stream, key)
 		if (res.length < limit) { -- offset; skip = 0 }
 		else { skip += res.length }
 	}
-	throw 'not found'
+	let e = new Error('not found')
+	e.code = 'NoResults'
+	throw e
 }
 
 async function dstream(addr, stream, key)
@@ -446,6 +449,21 @@ async function bcatstatus(txid)
 	}
 }
 
+async function txbroadcast(hex)
+{
+	let tx = bsv.Transaction(hex)
+	let raw
+	try {
+		raw = await blockchair.getTX(tx.id)
+	} catch(e) { }
+	if (hex == raw) {
+		let e = new Error('Transaction is old')
+		e.code = 'AlreadyExists'
+		throw e
+	}
+	return await blockchair.broadcast(hex)
+}
+
 module.exports = {
 	bitdb: bitdb,
 	blockchair: blockchair,
@@ -472,5 +490,6 @@ module.exports = {
 	dstatus: dstatus,
 	ddownload: ddownload,
 	dstream: dstream,
-	cstatus: cstatus
+	cstatus: cstatus,
+	txbroadcast: txbroadcast
 }

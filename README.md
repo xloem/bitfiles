@@ -20,3 +20,15 @@ Examples:
     $ git init
     $ D-to-git-fast-import <addr> | git fast-import
 
+Listing of error.code values, a work in progress:
+
+    AlreadyExists
+        provided data is already present
+    NoResults
+        request matched nothing
+    InvalidData
+        provided data does not work
+    UnknownError
+        something else (should detect and update source)
+        see error.original for details
+
