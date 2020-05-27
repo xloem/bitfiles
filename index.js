@@ -457,7 +457,7 @@ async function txbroadcast(hex)
 		raw = await blockchair.getTX(tx.id)
 	} catch(e) { }
 	if (hex == raw) {
-		let e = new Error('Transaction is old')
+		let e = new Error(tx.id + ': Transaction is old')
 		e.code = 'AlreadyExists'
 		throw e
 	}
