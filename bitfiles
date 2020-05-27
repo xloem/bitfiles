@@ -49,7 +49,7 @@ if (action == 'status') {
 	(()=>{
 		return bitfiles.txbroadcast(id)
 	})().then(console.log).catch(e=>{
-		process.stderr.write(id +': '+e.message + '\n')
+		process.stderr.write(e.message + '\n')
 		if (e.code !== 'AlreadyExists')
 		{
 			process.exit(-1)
