@@ -100,7 +100,7 @@ async function dstatus(addr, key, mode = null)
 	}
 }
 
-async function d(addr, stream, key)
+async function d(addr, key)
 {
 	let limit = 100
 	let skip = 0
