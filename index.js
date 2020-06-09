@@ -149,7 +149,11 @@ async function dstream(addr, stream, key)
 	}
 }
 
-async function ddownload(addr, keypfx, onlyupdate = true)
+// the entire hierarchy under keypfx is downloaded.
+// if onlyupdate is true, existing files will not be downloaded if the
+//    timestamp on the local file is later than the blocktime remotely
+// if pickoldest is true, the oldest rather than newest version is selected
+async function ddownload(addr, keypfx, onlyupdate = true, pickoldest = false)
 {
 	let keys = {}
 	let limit = 100

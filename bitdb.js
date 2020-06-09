@@ -127,6 +127,7 @@ function inaddr(addr, limit, skip, reverse = true)
 	} }
 }
 
+// reverse = true means newest-first
 function d(addr, limit, skip, key = undefined, reverse = true)
 {
 	return { 'v': 3, 'q': { 'find': {
