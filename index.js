@@ -6,6 +6,7 @@ path = require('path')
 bitdb = require('./bitdb.js')
 blockchair = require('./blockchair.js')
 mattercloud = require('./mattercloud.js')
+txt = require('./txt.js')
 whatsonchain = require('./whatsonchain.js')
 Queue = require('./queue.js')
 
@@ -342,8 +343,8 @@ async function bcatstream(txid, stream)
 
 async function cstatus(sha256)
 {
-	let c = await bitdb.bitdb(bitdb.c(sha256))
-	let app = await bitdba.autobitdb(bitdb.app(c))
+	let c = await txt.c(sha256)
+	let app = await bitdb.autobitdb(bitdb.app(c))
 	let parsed = bitdb.parseapp(app)
 	console.log(`${parsed}://${c}`)
 }
