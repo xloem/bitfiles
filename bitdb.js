@@ -1,5 +1,6 @@
 const genesisUrl = 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/'
 const genesisKey = ['159bcdKY4spcahzfTZhBbFBXrTWpoh4rd3']
+const babelUrl = 'https://babel.bitdb.network/q/1DHDifPvtPgKFPZMRSxmVHhiPvFmxZwbfh/'
 const dataUrl = 'https://data.bitdb.network/q/1KuUr2pSJDao97XM8Jsq8zwLS6W1WtFfLg/'
 const dataKey = ['1Px8CKdrfJUw7eVrTmVYjYtmtDoxjD6tGt']
 const axios = require('axios')
@@ -66,7 +67,7 @@ async function offsetbitdb(query, offset, nothrow = false) {
 async function bitdb(query, nothrow = false) {
 	let url, key
 	//process.stderr.write(JSON.stringify(query) + '\n')
-	url = genesisUrl
+	url = babelUrl
 	key = genesisKey
 	if (query.q.find.c) {
 		url = dataUrl
