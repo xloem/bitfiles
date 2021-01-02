@@ -47,9 +47,13 @@ async function bitbus(query, nothrow = false) {
         }
     }
     res = res.split('\n')
+    if (res[res.length-1].length == 0) {
+        res.length --
+    }
     for (let index = 0; index < res.length; ++ index) {
         res[index] = JSON.parse(res[index])
     }
+    return res
 }
 
 module.exports = {
