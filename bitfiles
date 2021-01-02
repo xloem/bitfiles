@@ -3,6 +3,7 @@
 let argv = {_: process.argv.slice(2)}//require('minimist')(process.argv.slice(2))
 let bitfiles = require('.')
 let bitdb = require('./bitdb')
+let bitbus = require('./bitbus')
 
 let action = argv._[0]
 if (!action || action == '--help' || action == '-h') {
@@ -95,6 +96,11 @@ if (action == 'status') {
 } else if (action == 'bitdb') {
 	(async () => {
 		let r = await bitdb.bitdb(JSON.parse(argv._[1]))
+		console.log(JSON.stringify(r))
+	})()
+} else if (action == 'bitbus') {
+	(async () => {
+		let r = await bitbus.bitbus(JSON.parse(argv._[1]))
 		console.log(JSON.stringify(r))
 	})()
 }
