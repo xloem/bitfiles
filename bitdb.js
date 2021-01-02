@@ -65,6 +65,7 @@ async function offsetbitdb(query, offset, nothrow = false) {
 }
 
 async function bitdb(query, nothrow = false) {
+	console.log('Warning: bitdb has been deprecated.  Likely you\'ll need to hunt down the fix for an issue to get any results.')
 	let url, key
 	//process.stderr.write(JSON.stringify(query) + '\n')
 	url = babelUrl
