@@ -35,7 +35,7 @@ async function bitbus(query, nothrow = false) {
     let res
     while (true) {
         try {
-            res = (await axios.post(url, config, data)).data
+            res = (await axios.post(url, data, config)).data
             break
         } catch(e) {
             if (e.code == 'EAI_AGAIN') {
@@ -54,16 +54,16 @@ async function bitbus(query, nothrow = false) {
 
 module.exports = {
 	bitbus: bitbus,
-	offsetbitbus: offsetbitbus,
-	autobitbus: autobitbus,
-	tx: tx,
-	inaddr: inaddr,
-	app: app,
-	b: b,
-	bcat: bcat,
-	bcatpart: bcatpart,
-	c: c,
-	d: d,
-	parseapp: parseapp,
-	parsebcat: parsebcat
+	//offsetbitbus: offsetbitbus,
+	//autobitbus: autobitbus,
+	//tx: tx,
+	//inaddr: inaddr,
+	//app: app,
+	//b: b,
+	//bcat: bcat,
+	//bcatpart: bcatpart,
+	//c: c,
+	//d: d,
+	//parseapp: parseapp,
+	//parsebcat: parsebcat
 }
