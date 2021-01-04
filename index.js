@@ -4,6 +4,7 @@ fse = require('fs-extra')
 path = require('path')
 
 bitdb = require('./bitdb.js')
+bitbus = require('./bitbus.js')
 blockchair = require('./blockchair.js')
 mattercloud = require('./mattercloud.js')
 txt = require('./txt.js')
@@ -27,7 +28,7 @@ async function txdownload(txid, fn = undefined)
 
 async function bdownload(txid, fn = undefined)
 {
-	let b = await bitdb.autobitdb(bitdb.b(txid))
+	let b = await bitbus.autobitbus(bitbus.b(txid))
 	if (fn === undefined) {
 		fn = b.filename
 	}
@@ -43,7 +44,7 @@ async function bdownload(txid, fn = undefined)
 async function bcatdownload(txid, fn = undefined)
 {
 	if (fn === undefined) {
-		let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
+		let bcat = await bitbus.autobitbus(bitbus.bcat(txid))
 		fn = bcat.filename
 	}
 	console.log(`Downloading ${fn} ...`)
@@ -68,11 +69,11 @@ async function dstatus(addr, key, mode = null)
 	let offset = 1
 	let found = false
 	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip, key), offset, true)
+		let res = await bitbus.offsetbitbus(bitbus.d(addr, limit, skip, key), offset, true)
 		for (let r of res) {
 			//if (r.alias != key) { continue }
 			let time = r.block ? (new Date(r.block.t*1000)).toISOString() : 'unconfirmed'
-			let app = (mode == 'list') ? 'tx' : bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			let app = (mode == 'list') ? 'tx' : bitbus.parseapp(await bitbus.autobitbus(bitbus.app(r.pointer)))
 			console.log(`${time} ${r.transaction} ${r.type} ${app||'tx'}://${r.pointer}`)
 
 			if (mode == 'list') {
@@ -106,9 +107,9 @@ async function d(addr, key)
 	let skip = 0
 	let offset = 1
 	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip, key), offset, true)
+		let res = await bitbus.offsetbitbus(bitbus.d(addr, limit, skip, key), offset, true)
 		for (let r of res) {
-			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			let app = bitbus.parseapp(await bitbus.autobitbus(bitbus.app(r.pointer)))
 			if (app === 'BCAT') {
 				return await bcat(r.pointer)
 			} else if (app === 'B') {
@@ -131,9 +132,9 @@ async function dstream(addr, stream, key)
 	let skip = 0
 	let offset = 1
 	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip, key), offset, true)
+		let res = await bitbus.offsetbitbus(bitbus.d(addr, limit, skip, key), offset, true)
 		for (let r of res) {
-			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			let app = bitbus.parseapp(await bitbus.autobitbus(bitbus.app(r.pointer)))
 			if (app === 'BCAT') {
 				await bcatstream(r.pointer, stream)
 				return
@@ -160,7 +161,7 @@ async function ddownload(addr, keypfx, onlyupdate = true, pickoldest = false)
 	let skip = 0
 	let offset = 1
 	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
+		let res = await bitbus.offsetbitbus(bitbus.d(addr, limit, skip), offset, true)
 		for (let r of res) {
 			if (r.alias.length < keypfx || r.alias.slice(0,keypfx.length) !== keypfx) { continue }
 			if (r.alias in keys) { continue }
@@ -182,7 +183,7 @@ async function ddownload(addr, keypfx, onlyupdate = true, pickoldest = false)
 					}
 				} catch(e) { }
 			}
-			let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			let app = bitbus.parseapp(await bitbus.autobitbus(bitbus.app(r.pointer)))
 			if (app === 'BCAT') {
 				await bcatdownload(r.pointer, fn)
 			} else if (app === 'B') {
@@ -203,10 +204,10 @@ async function dlog(addr, mode = null)
 	let skip = 0
 	let offset = 1
 	while (offset >= 0) {
-		let res = await bitdb.offsetbitdb(bitdb.d(addr, limit, skip), offset, true)
+		let res = await bitbus.offsetbitbus(bitbus.d(addr, limit, skip), offset, true)
 		for (let r of res) {
 			let time = r.block ? (new Date(r.block.t*1000)).toISOString() : 'unconfirmed'
-			let app = mode == 'list' ? 'tx' : bitdb.parseapp(await bitdb.autobitdb(bitdb.app(r.pointer)))
+			let app = mode == 'list' ? 'tx' : bitbus.parseapp(await bitbus.autobitbus(bitbus.app(r.pointer)))
 			console.log(`${time} ${r.transaction} ${r.alias} ${r.type} ${app || 'tx'}://${r.pointer}`)
 		}
 		if (res.length < limit) { -- offset; skip = 0 }
@@ -220,7 +221,7 @@ async function addrdownload(addr, path = '.', ext = '')
 	let skip = 0
 	console.log(`Downloading all raw transactions for bitcoin://${addr} ...`)
 	while (true) {
-		let res = await bitdb.bitdb(bitdb.inaddr(addr, limit, skip), true)
+		let res = await bitbus.bitbus(bitbus.inaddr(addr, limit, skip), true)
 		for (let txid of res) {
 			await txdownload(txid, `${path}/txid${ext}`);
 		}
@@ -242,17 +243,17 @@ async function txstatus(txid)
 	let tx
 	try {
 		console.log(`BitDB status of tx://${txid}`)
-		tx = await bitdb.bitdb(bitdb.tx(txid))
+		tx = await bitbus.bitbus(bitbus.tx(txid))
 	} catch(e) {
 		if (e.code == 'NoResults') {
 			console.log('Not found')
 			await mstatus(txid);
-			tx = await bitdb.bitdb(bitdb.tx(txid))
+			tx = await bitbus.bitbus(bitbus.tx(txid))
 		} else {
 			throw e
 		}
 	}
-	let app = bitdb.parseapp(await bitdb.autobitdb(bitdb.app(txid)))
+	let app = bitbus.parseapp(await bitbus.autobitbus(bitbus.app(txid)))
 	if (app === 'BCAT') {
 		await bcatstatus(txid)
 	} else if (app === 'B') {
@@ -286,7 +287,7 @@ async function txstream(txid, stream)
 
 async function b(txid)
 {
-	let b = await bitdb.autobitdb(bitdb.b(txid))
+	let b = await bitbus.autobitbus(bitbus.b(txid))
 	return Buffer.from(b.data, 'base64')
 }
 
@@ -297,12 +298,12 @@ async function bstream(txid, stream)
 
 async function bcat(txid)
 {
-	let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
-	bcat = bitdb.parsebcat(bcat)
+	let bcat = await bitbus.autobitbus(bitbus.bcat(txid))
+	bcat = bitbus.parsebcat(bcat)
 	let queue = new Queue(10);
 	for (let chunk of bcat.data) {
 		queue.add(async (chunk) => {
-			let res = await bitdb.autobitdb(bitdb.bcatpart(chunk))
+			let res = await bitbus.autobitbus(bitbus.bcatpart(chunk))
 			try {
 				return Buffer.from(res, 'base64')
 			} catch(e) {
@@ -323,12 +324,12 @@ async function bcat(txid)
 
 async function bcatstream(txid, stream)
 {
-	let bcat = await bitdb.autobitdb(bitdb.bcat(txid))
-	bcat = bitdb.parsebcat(bcat)
+	let bcat = await bitbus.autobitbus(bitbus.bcat(txid))
+	bcat = bitbus.parsebcat(bcat)
 	let queue = new Queue(10);
 	for (let chunk of bcat.data) {
 		queue.add(async (chunk) => {
-			let res = await bitdb.autobitdb(bitdb.bcatpart(chunk))
+			let res = await bitbus.autobitbus(bitbus.bcatpart(chunk))
 			try {
 				return Buffer.from(res, 'base64')
 			} catch(e) {
@@ -348,8 +349,8 @@ async function bcatstream(txid, stream)
 async function cstatus(sha256)
 {
 	let c = await txt.c(sha256)
-	let app = await bitdb.autobitdb(bitdb.app(c))
-	let parsed = bitdb.parseapp(app)
+	let app = await bitbus.autobitbus(bitbus.app(c))
+	let parsed = bitbus.parseapp(app)
 	console.log(`${parsed}://${c}`)
 }
 
@@ -385,7 +386,7 @@ async function mstatus(txid)
 
 async function bstatus(txid)
 {
-	let b = await bitdb.autobitdb(bitdb.b(txid))
+	let b = await bitbus.autobitbus(bitbus.b(txid))
 	console.log('Filename: ' + b.filename)
 	console.log('ID: b://' + txid)
 	console.log('Author: ' + b.sender)
@@ -394,11 +395,12 @@ async function bstatus(txid)
 	console.log('Date: ' + (b.block ? (new Date(b.block.t*1000)).toISOString() : 'unconfirmed'))
 	console.log('Block: ' + (b.block ? (b.block.i + ' ' + b.block.h) : 'unconfirmed'))
 	console.log('Size: ' + b.data.length)
+	console.log(b.data)
 }
 
 async function bcatstatus(txid)
 {
-	let bcat = bitdb.parsebcat(await bitdb.autobitdb(bitdb.bcat(txid)))
+	let bcat = bitbus.parsebcat(await bitbus.autobitbus(bitbus.bcat(txid)))
 	console.log('Filename: ' + bcat.filename)
 	console.log('ID: bcat://' + txid)
 	console.log('Author: ' + bcat.sender)
@@ -422,7 +424,7 @@ async function bcatstatus(txid)
 	let queue = new Queue(10);
 	for (let chunk of bcat.data) {
 		queue.add(async (chunk) => {
-			let res = await bitdb.autobitdb(bitdb.bcatpart(chunk))
+			let res = await bitbus.autobitbus(bitbus.bcatpart(chunk))
 			res = Buffer.from(res, 'base64')
 			if (!res.length) throw res;
 			if (res.length > maxsize) { maxsize = res.length }
@@ -470,7 +472,8 @@ async function txbroadcast(hex)
 }
 
 module.exports = {
-	bitdb: bitdb,
+	bitdb: bitbus,
+	bitbus: bitbus,
 	blockchair: blockchair,
 	mattercloud: mattercloud,
 	whatsonchain: whatsonchain,
