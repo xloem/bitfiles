@@ -8,7 +8,7 @@
     "D-to-git-fast-import": "./D-to-git-fast-import"
   },
   "dependencies": {
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "bitbus-client": "git+https://gitlab.com/Breavyn/bitbus-client.git",
     "bsv": "^2.0.4",
     "events": "^3.1.0",
